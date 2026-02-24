@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QLabel, QVBoxLayout, QHBoxLay
 from PyQt5.QtGui import QFont, QPalette, QColor, QLinearGradient, QBrush, QIcon, QTextCursor
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import sys
-from Bio import SeqIO
 from io import StringIO, BytesIO
 import requests
 import json
@@ -14,6 +13,7 @@ import time
 import hashlib
 from dynamic_align import DynamicAlign
 from chatmodel import Chatbot
+from Bio import SeqIO
 
 class BlastWorker(QThread):
     finished = pyqtSignal(str)
@@ -181,8 +181,7 @@ class BlastWindow(QMainWindow):
         # Title 
         title = QLabel()
         title.setText("""
-         <span style="font-family:\'Source Sans Pro\'; font-size:20pt; font-weight:400; color:#924511;">BLAST</span><br>
-                            """)
+         <span style="font-family:\'Source Sans Pro\'; font-size:20pt; font-weight:400; color:#924511;">BLAST</span><br>""")
         title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         title.setWordWrap(True)
         # title.setFixedHeight(60)
@@ -201,12 +200,11 @@ class BlastWindow(QMainWindow):
         # Splitter 
         splitter = QSplitter(Qt.Horizontal)
         
-        
-
         # Left Panel 
         left_frame = QFrame()
         left_label = QLabel('Controls')
         left_label.setFont(QFont("Segoe UI", 14, QFont.Medium))
+        left_label.setStyleSheet("color: #4a4e69; line-height: 1.0;")
         left_label.setAlignment(Qt.AlignLeft)
         left_frame.setFrameShape(QFrame.StyledPanel)
         left_frame.setMidLineWidth(300)
@@ -220,7 +218,7 @@ class BlastWindow(QMainWindow):
 
         def styled_button(text, color1, color2):
             btn = QPushButton(text)
-            btn.setFont(QFont("Segoe UI", 10))
+            btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(45)
             btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -228,8 +226,8 @@ class BlastWindow(QMainWindow):
                 QPushButton {{
                     background-color: {color1};
                     color: white;
-            
-                    padding: 10px 18px;
+                    border-radius: 10px; 
+                    padding: 8px 18px;
                 }}
                 QPushButton:pressed {{
                     background-color: {color2};
@@ -269,7 +267,7 @@ class BlastWindow(QMainWindow):
         self.seq_view.setStyleSheet("""
             QTextEdit {
                 background-color: #f2e9e4;
-                color: #22223b;
+                color: #4a4e69;
                 border: 2px #22223b ;
                 border-radius: 10px;
                 padding: 10px;
@@ -289,7 +287,6 @@ class BlastWindow(QMainWindow):
         center_tabs.addTab(self.output_tab, "BLAST Output")
         
 
-
         # Right Frame 
         right_frame = QFrame()
         right_frame.setFrameShape(QFrame.StyledPanel)
@@ -299,19 +296,21 @@ class BlastWindow(QMainWindow):
         # ChatBot
         chatbot_label = QLabel("Modssitant")
         chatbot_label.setFont(QFont("Segoe UI", 14, QFont.Medium))
+        chatbot_label.setStyleSheet("color: #4a4e69; line-height: 1.0;")
         chatbot_label.setAlignment(Qt.AlignLeft)
         right_layout.addWidget(chatbot_label)
 
         self.chattext = QTextEdit()
         self.chattext.setReadOnly(True)
         self.chattext.setPlaceholderText("ChatBot responses will appear here...")
+        self.chattext.setFont(QFont("Segoe UI", 11))
         right_layout.addWidget(self.chattext)
 
         # Chat Input 
         input_layout = QHBoxLayout()
         self.chat_input = QLineEdit()
         self.chat_input.setPlaceholderText("How can I assist you?")
-        self.chat_input.setFont(QFont("Segoe UI", 10))
+        self.chat_input.setFont(QFont("Segoe UI", 11))
         self.chat_input.setMinimumHeight(40)
 
         self.chat_input.returnPressed.connect(self.send_chat_message)
@@ -344,17 +343,54 @@ class BlastWindow(QMainWindow):
         if not user_msg:
             return
 
-        # Append user message
-        self.chattext.append(f"You: {user_msg}")
-        self.chattext.setFont(QFont("Segoe UI", 10))
+        # User message (Researcher)
+        user_html = f"""
+        <div style="
+            margin: 8px 0 14px 0;
+            color: #c77dff;
+            font-weight: 600;
+            font-family: Segoe UI;
+            font-size: 11pt;
+        ">
+            Modeler:
+            <span style="
+                font-weight: 400;
+                color: #000000;
+            ">
+                {user_msg}
+            </span>
+        </div>
+        """
+        self.chattext.append(user_html)
         self.chat_input.clear()
 
         # Generate and append bot response
         try:
             response = self.chatbot.generate_response(user_msg)
-            self.chattext.append(f"Bot: {response}")
+
+            bot_html = f"""
+            <div style="
+                margin: 0 0 18px 0;
+                color: #7b2cbf;
+                font-weight: 600;
+                font-family: Segoe UI;
+                font-size: 11pt;
+            ">
+                Vasuki:
+                <span style="
+                    font-weight: 400;
+                    color: #222222;
+                ">
+                    {response}
+                </span>
+            </div>
+            """
+            self.chattext.append(bot_html)
+
         except Exception as e:
-            self.chattext.append(f"Bot: Error generating response: {e}")
+            self.chattext.append(
+                f"<span style='color:red;'>AutoMod: Error generating response: {e}</span>"
+            )
 
         # Scroll to end
         self.chattext.moveCursor(QTextCursor.End)
@@ -363,6 +399,7 @@ class BlastWindow(QMainWindow):
 
     def BLASTClicked(self):
         self.status_display.setPlainText("Running BLAST, please wait... (This may take a while due to remote server query)")
+        self.status_display.setFont(QFont("Segoe UI", 12))
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         self.worker = BlastWorker(self.fasta_sequence, self.cache)
@@ -383,9 +420,11 @@ class BlastWindow(QMainWindow):
         try:
             data = json.loads(result)
             self.status_display.setPlainText('BLAST Finished, Preparing Result Table...')
+            self.status_display.setFont(QFont("Segoe UI", 12))
             self.show_blast_table(data)
         except json.JSONDecodeError as e:
             self.status_display.setPlainText(f"Error: Failed to parse BLAST results as JSON: {str(e)}")
+            self.status_display.setFont(QFont("Segoe UI", 12))
             self.progress_bar.setVisible(False)
         except Exception as e:
             self.status_display.setPlainText(f"Error: {str(e)}")

@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
 import tempfile, os
@@ -7,16 +8,20 @@ class Visualizer(QWidget):
     def __init__(self, output_dir):
         super().__init__()
         self.setWindowTitle("Protein Model Visualizer")
+        self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
         self.output_dir = output_dir
 
         # Create main layout ONCE here
         self.layout = QVBoxLayout(self)
         self.web = QWebEngineView()
         self.info_label = QLabel("Model details will appear here.")
+        self.info_label.setWordWrap(True)
 
-        self.layout.addWidget(self.info_label)
-        self.layout.addWidget(self.web)
-        self.setLayout(self.layout) 
+        # Give the label a small stretch and the web view a larger stretch
+        # so the model area occupies ~80% and the title/label ~20%.
+        self.layout.addWidget(self.info_label, 1)
+        self.layout.addWidget(self.web, 4)
+        self.setLayout(self.layout)
 
     def visualize_model(self, model):
         """Load model PDB content into an HTML page and show with 3Dmol.js."""
@@ -44,10 +49,10 @@ class Visualizer(QWidget):
     <meta charset="utf-8">
     <title>3Dmol Viewer</title>
     <script src="https://3dmol.org/build/3Dmol-min.js"></script>
-    <style>html,body,#container{{height:100%; margin:0;}}</style>
+    <style>html,body,#container{{height:100%; margin:0; font-size:14px; font-family: Arial}}</style>
     </head>
     <body>
-    <div id="container" style="width:100%; height:100vh;"></div>
+    <div id="container" style="width:100%; height:100%;"></div>
     <script>
         const pdbData = {pdb_js};
         const viewer = $3Dmol.createViewer('container', {{ backgroundColor: 'white' }});

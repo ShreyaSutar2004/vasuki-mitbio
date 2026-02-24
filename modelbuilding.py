@@ -24,6 +24,7 @@ from modeller import Environ
 from modeller.automodel import AutoModel, assess
 
 from dynamic_align import DynamicAlign
+from validation import RamPlotGUI
 
 
 
@@ -85,7 +86,7 @@ class ModelBuildWorker(QThread):
             sys.stdout = buffer
             sys.stderr = buffer
 
-            self.message.emit("Starting model build...")
+            self.message.emit("Starting model building")
             a = AutoModel(env,
                           alnfile=self.alnfile,
                           knowns=self.knowns,
@@ -94,7 +95,8 @@ class ModelBuildWorker(QThread):
             a.starting_model = self.start_model
             a.ending_model = self.end_model
 
-            self.message.emit(f"Building models {self.start_model} to {self.end_model}...")
+            self.message.emit(f"Building models {self.start_model} to {self.end_model}")
+            
 
             if self._cancel:
                 raise RuntimeError("Build cancelled by user.")
@@ -109,6 +111,7 @@ class ModelBuildWorker(QThread):
                 successful_models = self.parse_summary(summary_match.group(0))
 
             self.message.emit(f"Produced {len(successful_models)} successful models.")
+    
         except Exception as e:
             import traceback
             error_msg = f"Build failed: {e}\n{traceback.format_exc()}"
@@ -197,7 +200,7 @@ class ModelBuild(QMainWindow):
 
         # Section title
         section_label = QLabel("Controls")
-        section_label.setFont(QFont("Segoe UI", 12, QFont.Medium))
+        section_label.setFont(QFont("Segoe UI", 12))
         section_label.setStyleSheet("color:#4a4e69;")
         left_layout.addWidget(section_label)
 
@@ -251,12 +254,12 @@ class ModelBuild(QMainWindow):
         left_layout.addLayout(row1)
 
         # Known templates
-        left_layout.addWidget(field_label("Templates (comma-separated)"))
+        left_layout.addWidget(field_label("Templates"))
         self.knowns_edit = styled_input()
         left_layout.addWidget(self.knowns_edit)
 
         # Target Sequence name
-        left_layout.addWidget(field_label("Target Sequence (label from .ali file)"))
+        left_layout.addWidget(field_label("Target"))
         self.seq_edit = styled_input()
         left_layout.addWidget(self.seq_edit)
 
@@ -326,12 +329,12 @@ class ModelBuild(QMainWindow):
             """)
             return btn
 
-        self.btn_build = action_button("Build Models", "#2e7d32")
+        self.btn_build = action_button("Build Models", "#3c6e71")
 
         self.btn_build.clicked.connect(self.start_build)
         left_layout.addWidget(self.btn_build)
 
-        self.btn_cancel = action_button("Cancel", "#d1495b")
+        self.btn_cancel = action_button("Cancel", "#da4167")
         self.btn_cancel.clicked.connect(self.cancel_build)
         self.btn_cancel.setEnabled(False)
         left_layout.addWidget(self.btn_cancel)
@@ -401,6 +404,29 @@ class ModelBuild(QMainWindow):
         """)
         models_layout.addWidget(self.table)
 
+        # Add button below table
+        self.btn_ramplot = QPushButton("Model Structure Validation")
+        self.btn_ramplot.setFont(QFont("Segoe UI", 12, QFont.Medium))
+        self.btn_ramplot.setCursor(Qt.PointingHandCursor)
+        self.btn_ramplot.setEnabled(False)  # Disable until table is generated
+        self.btn_ramplot.setStyleSheet("""
+            QPushButton {
+                background-color:#9a8c98;
+                color:white;
+                padding:10px;
+                border-radius:6px;
+            }
+            QPushButton:pressed {
+                background-color:#d1495b;
+            }
+            QPushButton:disabled {
+                background-color:#cccccc;
+                color:#666666;
+            }
+        """)
+        self.btn_ramplot.clicked.connect(self.open_ramplot)
+        models_layout.addWidget(self.btn_ramplot)
+
         self.tabs.addTab(models_tab, "Models")
 
         splitter.addWidget(right_widget)
@@ -456,6 +482,8 @@ class ModelBuild(QMainWindow):
         if folder:
             self.output_edit.setText(folder)
 
+
+
     def start_build(self):
         alnfile = self.aln_edit.text().strip()
         if not alnfile or not os.path.exists(alnfile):
@@ -477,6 +505,7 @@ class ModelBuild(QMainWindow):
         self.console.clear()
         self.progress.setRange(0, 0)
         self.status_label.setText("Running Modeller...")
+        self.status_label.setFont(QFont("Segoe UI", 11))
         self.btn_build.setEnabled(False)
         self.btn_cancel.setEnabled(True)
 
@@ -494,6 +523,7 @@ class ModelBuild(QMainWindow):
         if self.worker:
             self.worker.cancel()
             self.status_label.setText("Cancelling...")
+            self.status_label.setFont(QFont("Segoe UI", 11))
         self.btn_cancel.setEnabled(False)
 
     def on_log_line(self, line):
@@ -506,11 +536,6 @@ class ModelBuild(QMainWindow):
                 models = self.worker.parse_summary(match.group(0))
                 if models:
                     self.populate_table(models)
-    
-    
-    
-        
-    
                 
 
     def populate_table(self, models):
@@ -532,7 +557,7 @@ class ModelBuild(QMainWindow):
             self.table.setItem(r, 3, QTableWidgetItem(f"{m.get('ga341', 0):.2f}"))
 
             visualize_btn = QPushButton("Visualize")
-            visualize_btn.setStyleSheet('background-color : lightgreen; color : white; font-weight: bold')
+            visualize_btn.setStyleSheet('background-color : #e0afa0; color : white; font-weight: bold')
 
             visualize_btn.clicked.connect(lambda _, model=m: self.open_visualizer(model))
             self.table.setCellWidget(r, 4, visualize_btn)
@@ -540,6 +565,7 @@ class ModelBuild(QMainWindow):
 
         self.table.resizeColumnsToContents()
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.btn_ramplot.setEnabled(True) 
         self.tabs.setCurrentIndex(1)
 
     def on_finished(self, log_text, success, models):
@@ -566,11 +592,14 @@ class ModelBuild(QMainWindow):
         viz.show()
 
         self.visualizers.append(viz) 
+
+    def open_ramplot(self):
+        """Open the Ramachandran Plot visualization window."""
+        self.ramplot_window = RamPlotGUI()
+        self.ramplot_window.show()
+
+        self.close()
         
-
-
-
-
 def main():
     app = QApplication(sys.argv)
     gui = ModelBuild()

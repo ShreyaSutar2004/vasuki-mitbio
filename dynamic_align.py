@@ -68,7 +68,7 @@ class DynamicAlign(QMainWindow):
 
         def styled_button(text, color1, color2):
             btn = QPushButton(text)
-            btn.setFont(QFont("Segoe UI", 10))
+            btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(45)
             btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -76,6 +76,7 @@ class DynamicAlign(QMainWindow):
                 QPushButton {{
                     background-color: {color1};
                     color: white;
+                    border-radius: 8px;
                     padding: 10px 18px;
                     
                 }}
@@ -85,7 +86,7 @@ class DynamicAlign(QMainWindow):
             """)
             return btn 
         
-        btn_open = styled_button("Browse FASTA / .ali", "#9a8c98", "#d1495b")
+        btn_open = styled_button("Browse PIR File", "#9a8c98", "#d1495b")
         btn_open.clicked.connect(self.open_fasta)
         button_layout.addWidget(btn_open)
 
@@ -95,17 +96,17 @@ class DynamicAlign(QMainWindow):
 
         button_layout.addSpacing(20)
 
-        self.align_btn = styled_button("Run Alignment", "#2e7d32", "#1b5e20")
+        self.align_btn = styled_button("Run Alignment", "#4a4e69", "#22223b")
         self.align_btn.clicked.connect(self.do_align)
         self.align_btn.setEnabled(False)
         button_layout.addWidget(self.align_btn)
 
-        self.download_btn = styled_button("Download .ali", "#f57c00", "#ef6c00")
+        self.download_btn = styled_button("Save Alignment", "#fca311", "#f5cb5c")
         self.download_btn.clicked.connect(self.download_ali)
         self.download_btn.setEnabled(False)
         button_layout.addWidget(self.download_btn)
 
-        self.nextbtn = styled_button("Model Building", "#1565c0", "#0d47a1")
+        self.nextbtn = styled_button("Model Building", "#3c6e71", "#6b9080")
         self.nextbtn.clicked.connect(self.open_nextpage)
         button_layout.addWidget(self.nextbtn)
 
@@ -119,11 +120,12 @@ class DynamicAlign(QMainWindow):
 
         # Preview Section
         preview_box = QGroupBox("Uploaded File Preview")
+        preview_box.setFont(QFont("Segoe UI", 12))
         pv_layout = QVBoxLayout(preview_box)
         pv_layout.setContentsMargins(10, 10, 10, 10)
         self.preview_edit = QTextEdit()
         self.preview_edit.setReadOnly(True)
-        self.preview_edit.setFont(QFont("Consolas", 10))
+        self.preview_edit.setFont(QFont("Consolas", 11))
         self.preview_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.preview_edit.setStyleSheet("""
             QTextEdit {
@@ -143,10 +145,11 @@ class DynamicAlign(QMainWindow):
 
         # Messages/Output Section
         output_box = QGroupBox("Alignment / Messages")
+        output_box.setFont(QFont("Segoe UI", 12))
         out_layout = QVBoxLayout(output_box)
         self.msg_edit = QTextEdit()
         self.msg_edit.setReadOnly(True)
-        self.msg_edit.setFont(QFont("Consolas", 10))
+        self.msg_edit.setFont(QFont("Consolas", 11))
         self.msg_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.msg_edit.setStyleSheet("""
             QTextEdit {
@@ -183,6 +186,7 @@ class DynamicAlign(QMainWindow):
 
         tpl_label = QLabel("Selected Templates")
         tpl_label.setFont(QFont("Segoe UI", 14, QFont.Medium))
+        tpl_label.setStyleSheet("color: #4a4e69; line-height: 1.0;")
         tpl_label.setAlignment(Qt.AlignLeft)
         right_layout.addWidget(tpl_label)
 
@@ -220,9 +224,12 @@ class DynamicAlign(QMainWindow):
             self.populate_templates(self.selected_templates)
             self.auto_download_pdbs()
             self.status_display.setPlainText("Templates loaded. Ready for alignment.")
+            self.status_display.setFont(QFont("Segoe UI", 12))
+
+
 
     def open_fasta(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Open FASTA or .ali", "", "FASTA/ALI Files (*.fasta *.fa *.ali *.pir);;All Files (*)")
+        path, _ = QFileDialog.getOpenFileName(self, "Browse PIR Format", "", "PIR Files (*.fasta *.fa *.ali *.pir);;All Files (*)")
         if not path: return
         self.upload_path = path
         with open(path, 'r', encoding='utf-8') as f:
@@ -277,6 +284,7 @@ class DynamicAlign(QMainWindow):
             self.status_display.setText("PDBs imported successfully")
         else:
             self.msg_edit.append("No new PDBs imported (duplicates skipped).")
+            self.status_display.setFont(QFont("Segoe UI", 11))
 
     def open_nextpage(self):
         from modelbuilding import ModelBuild
@@ -318,54 +326,88 @@ class DynamicAlign(QMainWindow):
                 pass
         if downloaded:
             self.msg_edit.append(f"Auto-downloaded PDBs: {', '.join(downloaded)}")
-            self.status_display.setText("Template PDBs ready ✅")
+            self.status_display.setText("Template PDBs ready")
+            self.status_display.setFont(QFont("Segoe UI", 11))
 
 
     def do_align(self):
         if not self.upload_path or not self.selected_templates:
-            QMessageBox.warning(self, "Missing Input", "Please upload target file and ensure templates are available.")
+            QMessageBox.warning(self, "Missing Input",
+                                "Please upload target sequence and select at least one template.")
             return
 
         self.msg_edit.clear()
-        self.msg_edit.append("Running Modeller alignment...")
-        self.progress.setValue(20)
+        self.msg_edit.append("Running MODELLER Alignment...")
+        self.progress.setValue(10)
         QApplication.processEvents()
 
         try:
             env = Environ()
+            env.libs.topology.read(file='$(LIB)/top_heav.lib')
+            env.libs.parameters.read(file='$(LIB)/par.lib')
+
             aln = Alignment(env)
 
+            # --- Load templates correctly ---
             for tpl in self.selected_templates:
-                code = tpl['PDB_ID']
-                pdbfile = f"{code}.pdb"
-                align_code = f"{code}{tpl.get('Chain','A')}"
-                if not os.path.exists(pdbfile):
-                    raise FileNotFoundError(f"PDB file not found: {pdbfile}")
-                mdl = Model(env, file=code)
-                aln.append_model(mdl, align_codes=align_code, atom_files=pdbfile)
-                self.msg_edit.append(f"Template added: {code}")
+                pdb_id = tpl['PDB_ID']
+                chain = tpl.get('Chain', 'A')
+                pdbfile = f"{pdb_id}.pdb"
 
-            aln.append(file=self.upload_path, alignment_format='PIR' if self.upload_path.endswith('.ali') else 'FASTA')
-            aln.align2d(max_gap_length=50)
+                if not os.path.exists(pdbfile):
+                    raise FileNotFoundError(f"Missing PDB file: {pdbfile}")
+
+                mdl = Model(
+                    env,
+                    file=pdbfile,
+                    model_segment=(f"FIRST:{chain}", f"LAST:{chain}")
+                )
+
+                align_code = f"{pdb_id}_{chain}"
+                aln.append_model(
+                    mdl,
+                    align_codes=align_code,
+                    atom_files=pdbfile
+                )
+
+                self.msg_edit.append(f"Template loaded: {pdb_id} (chain {chain})")
+
+            self.progress.setValue(40)
+            QApplication.processEvents()
+
+            # --- Add target sequence ---
+            aln.append(file=self.upload_path, alignment_format='PIR')
+            self.msg_edit.append("Target sequence added")
+
+            # --- Structure-aware alignment ---
+            aln.align2d(
+                max_gap_length=30,
+                gap_penalties_1d=(-600, -600)
+            )
+
+            # --- Write alignment ---
             aln.write(file='Alignment.ali', alignment_format='PIR')
             aln.write(file='Alignment.pap', alignment_format='PAP')
 
-            if os.path.exists('Alignment.pap'):
-                with open('Alignment.pap', 'r', encoding='utf-8') as f:
-                    pap = f.read()
-                self.msg_edit.append("\n=== Alignment (.pap) Preview ===\n")
-                self.msg_edit.append(pap[:5000])
-            else:
-                self.msg_edit.append("⚠️ PAP file not generated.")
+            self.progress.setValue(90)
+            QApplication.processEvents()
+
+            # --- Preview ---
+            with open('Alignment.pap', 'r', encoding='utf-8') as f:
+                pap = f.read()
+
+            self.msg_edit.append("\n=== Alignment (.pap) Preview ===\n")
+            self.msg_edit.append(pap[:4000])
 
             self.progress.setValue(100)
-            self.status_display.setText("Alignment complete ✅")
+            self.status_display.setText("Alignment completed successfully")
             self.download_btn.setEnabled(True)
 
         except Exception as e:
-            self.msg_edit.append(f"❌ Error: {str(e)}")
+            self.msg_edit.append(f"\n❌ Alignment failed:\n{str(e)}")
             self.status_display.setText("Alignment failed")
             self.progress.setValue(0)
+
 
 
     def download_ali(self):
@@ -379,7 +421,7 @@ class DynamicAlign(QMainWindow):
         with open(path, 'w', encoding='utf-8') as dest:
             dest.write(content)
         QMessageBox.information(self, "Saved", f"Saved: {path}")
-        self.status_display.setText(f"Saved {os.path.basename(path)} ✅")
+        self.status_display.setText(f"Saved {os.path.basename(path)} successfully.")
 
 
 def main():

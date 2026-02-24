@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "VASUKI"
+version = "1.0"
+description = "VASUKI: An Automated GUI for comparative protein modeling"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT ADT University"}
+authors = [
+  {name = "Ms.Shreya Sutar", "Dr.K V Swamy"}
+]
+
+dependencies = [
+  "pyQt5",
+  "Biopython",
+  "PyQtWebEngine",
+  "requests",
+  "ramplot",
+  "huggingface-hub"
+]
+
+[project.scripts]
+run-VASUKI = "VASUKI.main:main"
+
+[tool.setuptools]
+include-package-data = true
