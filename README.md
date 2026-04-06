@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/vasuki-mitbio.svg)](https://pypi.org/project/vasuki-mitbio/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-VASUKI is an automated graphical user interface (GUI) tool for comparative protein modeling, designed to simplify homology modeling workflows. Built with PyQt5, it integrates BLAST searches, dynamic alignments, and MODELLER for generating 3D protein structures from amino acid sequences.
+VASUKI is an automated graphical user interface (GUI) tool for comparative protein modeling, designed to simplify homology modeling workflows. Built with PyQt5, it integrates BLAST searches, dynamic alignments, MODELLER for generating 3D protein structures from amino acid sequences and generating Ramachandran plots. 
 
 ## Features
 
@@ -12,6 +12,7 @@ VASUKI is an automated graphical user interface (GUI) tool for comparative prote
 - **Dynamic Alignment**: Flexible sequence alignment tools for homology modeling.
 - **3D Model Building**: Uses MODELLER to generate high-quality protein structures.
 - **Visualization**: Built-in HTML-based model visualization.
+- **Validation**: Generates 2D and 3D Ramachandran plots. 
 - **Chat Interface**: AI-powered chat model for guidance and troubleshooting.
 - **Cross-Platform**: Supports Windows (primary), with potential for other OS.
 
@@ -30,8 +31,8 @@ pip install vasuki-mitbio
 ### From Source
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/Modeller_automation.git
-   cd Modeller_automation
+   git clone https://github.com/ShreyaSutar2004/vasuki-mitbio.git
+   cd vasuki
    ```
 
 2. Install dependencies:
@@ -51,7 +52,6 @@ run-vasuki
 
 ### Command-Line Scripts
 - `run-vasuki`: Launches the main GUI application.
-- `vasuki-chat`: Opens the AI chat interface for assistance.
 
 ### Workflow
 1. Input your target protein sequence (FASTA format).
@@ -60,14 +60,6 @@ run-vasuki
 4. Build 3D models using MODELLER.
 5. Visualize and validate results.
 
-## Examples
-
-The `repo-remote-check/` directory contains example datasets:
-
-- **Insulin Example**: Modeling insulin protein structure.
-- **Yeast Example**: HXKA protein modeling from yeast.
-
-Run examples by loading the provided `.ali` alignment files and following the GUI prompts.
 
 ## Dependencies
 
@@ -107,14 +99,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you use VASUKI in your research, please cite:
 
 Sutar, S., & Swamy, K. V. (2024). VASUKI: An Automated GUI for Comparative Protein Modeling. [Repository/Preprint Link]
-
-## Support
-
-For issues or questions:
-- Open a GitHub issue
-- Use the built-in chat interface (`vasuki-chat`)
-- Contact: [your-email@example.com]
-
----
 
 *VASUKI is named after the mythical serpent king, symbolizing precision and automation in protein modeling.* 
