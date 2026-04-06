@@ -1,3 +1,0 @@
-[console_scripts]
-run-vasuki = vasuki.main:main
-vasuki-chat = vasuki.chatmodel:main
