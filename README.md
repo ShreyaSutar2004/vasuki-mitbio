@@ -42,6 +42,13 @@ pip install vasuki-mitbio
    pip install .
    ```
 
+3. Chatbot Setup
+ Go to https://huggingface.co/
+ Login or Create a new account
+ Navigate to Settings --> Access Tokens
+ Select Read access
+ Copy the generated token.
+ 
 ## Usage
 
 ### Launch the GUI
@@ -52,6 +59,13 @@ run-vasuki
 
 ### Command-Line Scripts
 - `run-vasuki`: Launches the main GUI application.
+
+### Initializing Chatbot
+An .env file will be automatically created in your working directory. 
+'''bash
+HUGGINGFACEHUB_API_TOKEN= your_api_key_here
+'''
+(restart the application if needed)
 
 ### Workflow
 1. Input your target protein sequence (FASTA format).
@@ -93,8 +107,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Ms. Shreya Sutar**: Developer
 - **Dr. K V Swamy**: Supervisor
-
-## Citation
 
 If you use VASUKI in your research, please cite:
 
