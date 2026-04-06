@@ -43,7 +43,7 @@ pip install vasuki-mitbio
    ```
 
 3. Chatbot Setup
- Go to https://huggingface.co/
+ Go to (https://huggingface.co/)
  Login or Create a new account
  Navigate to Settings --> Access Tokens
  Select Read access
@@ -62,9 +62,9 @@ run-vasuki
 
 ### Initializing Chatbot
 An .env file will be automatically created in your working directory. 
-'''bash
+```bash
 HUGGINGFACEHUB_API_TOKEN= your_api_key_here
-'''
+```
 (restart the application if needed)
 
 ### Workflow
