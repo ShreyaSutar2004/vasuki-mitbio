@@ -287,7 +287,7 @@ class DynamicAlign(QMainWindow):
             self.status_display.setFont(QFont("Segoe UI", 11))
 
     def open_nextpage(self):
-        from modelbuilding import ModelBuild
+        from .modelbuilding import ModelBuild
         self.modelwindow = ModelBuild()
         self.modelwindow.show()
         self.close()
@@ -428,7 +428,7 @@ def main():
     app = QApplication(sys.argv)
     window = DynamicAlign()
     window.show()
-    sys.exit(app.exec_())
+    # sys.exit(app.exec_())
 
 if __name__ == '__main__':
     main()

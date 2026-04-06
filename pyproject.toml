@@ -3,27 +3,49 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "VASUKI"
-version = "1.0"
-description = "VASUKI: An Automated GUI for comparative protein modeling"
+name = "vasuki-mitbio"
+version = "1.1"
+description = "VASUKI: An Automated GUI for Comparative Protein Modeling"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT ADT University"}
+license = "MIT"
 authors = [
-  {name = "Ms.Shreya Sutar", "Dr.K V Swamy"}
+  {name = "Ms.Shreya Sutar"}, {name = "Dr.K V Swamy"}
+]
+keywords = ["vasuki", "protein modeling", "bioinformatics", "homology modeling", "BLAST", "PyQt5"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Operating System :: Microsoft :: Windows",
+  "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 
 dependencies = [
-  "pyQt5",
-  "Biopython",
-  "PyQtWebEngine",
+  "PyQt5>=5.15.4",
+  "modeller",
+  "biopython",
   "requests",
-  "ramplot",
-  "huggingface-hub"
+  "langchain",
+  "transformers",
+  "PyQtWebEngine",
+  "python-dotenv",
+  "pandas",
+  "ramplot"
 ]
 
 [project.scripts]
-run-VASUKI = "VASUKI.main:main"
+run-vasuki = "vasuki.main:main"
+vasuki-chat = "vasuki.chatmodel:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.package-data]
+"vasuki" = ["*.html"]
+
+[tool.setuptools.packages.find]
+include = ["vasuki*"]

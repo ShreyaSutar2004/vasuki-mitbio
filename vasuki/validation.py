@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QPixmap, QFont, QPalette, QBrush, QColor, QLinearGradient, QTextCursor, QIcon
-from chatmodel import Chatbot
+from .chatmodel import Chatbot
+from .config import get_api_key
 
 
 class RamPlotWorker(QThread):
@@ -151,7 +152,12 @@ class RamPlotGUI(QMainWindow):
         self.resize(1400, 850)
         self.showMaximized()
 
-        self.chatbot = Chatbot()
+        token = get_api_key()
+        try:
+            self.chatbot = Chatbot(token=token)
+        except Exception as e:
+            print(f"Chatbot disabled: {e}")
+            self.chatbot = None
         self.plots = []
         self.plot_index = 0
         self.analysis = {}
@@ -460,6 +466,10 @@ class RamPlotGUI(QMainWindow):
         self.chat_input.clear()
 
         # Generate and append bot response
+        if not self.chatbot:
+            self.chattext.append("<span style='color:red;'>Vasuki: Chatbot is disabled. Please set your Hugging Face API token.</span>")
+            return
+
         try:
             response = self.chatbot._llm_response(prompt)
 
@@ -484,7 +494,7 @@ class RamPlotGUI(QMainWindow):
 
         except Exception as e:
             self.chattext.append(
-                f"<span style='color:red;'>AutoMod: Error generating response: {e}</span>"
+                f"<span style='color:red;'>Vasuki: Error generating response: {e}</span>"
             )
 
         # Scroll to end

@@ -1,0 +1,10 @@
+PyQt5>=5.15.4
+modeller
+biopython
+requests
+langchain
+transformers
+PyQtWebEngine
+python-dotenv
+pandas
+ramplot

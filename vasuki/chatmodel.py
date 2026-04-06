@@ -3,26 +3,26 @@ import os
 import pandas as pd
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
-
-
+from .config import get_api_key
 load_dotenv()
 
+
 class Chatbot:
-    def __init__(self, blast_path=None):
+    def __init__(self, token=None):
+
         self.model_name = "mistralai/Mistral-7B-Instruct-v0.2"
         self.client = None
-        self.messages = []
-
-        self.blast_manager = BlastManager(blast_path) if blast_path else None
-        self.setup_client()
-
-    def setup_client(self):
-        self.client = InferenceClient(
-            token=os.getenv("HUGGINGFACEHUB_API_TOKEN")
-        )
+        self.blast_manager = None
+        
         self.messages = [
-            {"role": "system", "content": "You are a helpful bioinformatics assistant.Answer only in 3-4 relevant sentences, no lenghty explanations."}
+            {
+                "role": "system",
+                "content": "You are a helpful bioinformatics assistant. Answer only in 3-4 relevant sentences."
+            }
         ]
+
+        if token:
+            self.client = InferenceClient(token=token)
 
 
     def _llm_response(self, text):
@@ -72,19 +72,39 @@ class Chatbot:
 
     # -------- ROUTER (MAIN ENTRY) --------
     def generate_response(self, user_msg):
+
+        if not self.client:
+          return "AI not configured. Please add API key in .env"
+
         if self.blast_manager and self.blast_query(user_msg):
             return self.generate_blast_response(user_msg)
-
         return self._llm_response(user_msg)
+
     
 class BlastManager:
-    def __init__(self, blast_path):
-        self.blast_db = self.load_blast(blast_path)
+    def __init__(self, data):
+        if isinstance(data, str):
+            self.blast_db = self.load_blast(data)
+        else:
+            self.blast_db = data
+            # Convert numeric columns
+            self.blast_db['Score'] = pd.to_numeric(self.blast_db['Score'], errors='coerce')
+            self.blast_db['E_Value'] = pd.to_numeric(self.blast_db['E_Value'], errors='coerce')
+            self.blast_db['Identity'] = pd.to_numeric(self.blast_db['Identity'], errors='coerce')
+            self.blast_db['Positive'] = pd.to_numeric(self.blast_db['Positive'], errors='coerce')
+            self.blast_db['Gaps'] = pd.to_numeric(self.blast_db['Gaps'], errors='coerce')
 
     def load_blast(self, path):
         cols = ["Select", "PDB_ID", "Chain", "Accession", "Scientific_Name",
                 "Score", "E_Value", "Identity", "Positive", "Gaps"]
-        return pd.read_csv(path, names=cols, sep="\t")
+        df = pd.read_csv(path, names=cols, sep="\t")
+        # Convert numeric columns
+        df['Score'] = pd.to_numeric(df['Score'], errors='coerce')
+        df['E_Value'] = pd.to_numeric(df['E_Value'], errors='coerce')
+        df['Identity'] = pd.to_numeric(df['Identity'], errors='coerce')
+        df['Positive'] = pd.to_numeric(df['Positive'], errors='coerce')
+        df['Gaps'] = pd.to_numeric(df['Gaps'], errors='coerce')
+        return df
 
     def lowest_evalue(self):
         row = self.blast_db.loc[self.blast_db['E_Value'].idxmin()]
@@ -95,7 +115,10 @@ class BlastManager:
         return row.to_dict()
 
 def main():
-    chatbot = Chatbot(blast_path="blast_results.tsv")
+    
+
+    blast_path = os.path.join(os.getcwd(), "blast_results.tsv")
+    chatbot = Chatbot(blast_path=blast_path)
 
     while True:
         user_input = input("You: ").strip()

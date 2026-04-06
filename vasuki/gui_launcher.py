@@ -8,7 +8,7 @@ QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 from PyQt5 import QtWebEngine
 QtWebEngine.QtWebEngine.initialize()
 
-def launch():
+def launch(api_key=None):
     import os
     import sys
 
@@ -24,9 +24,9 @@ def launch():
 
     app = QApplication(sys.argv)
 
-    from home import MainWindow
+    from .home import MainWindow
 
-    window = MainWindow()
+    window = MainWindow(api_key=api_key)
     window.show()
     app.processEvents()
 

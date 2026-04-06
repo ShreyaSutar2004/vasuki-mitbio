@@ -7,8 +7,9 @@ from PyQt5.QtGui import QPalette, QColor, QTextCursor, QFont, QIcon, QLinearGrad
 from PyQt5.QtCore import Qt
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, api_key=None):
         super().__init__()
+        self.api_key = api_key
         self.setWindowTitle("Vasuki - Home")
         self.setMinimumSize(1500, 900)
         self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
@@ -222,9 +223,6 @@ DGSGKGAALVTAVACRLAQLTRV"""
         self.setStatusBar(status_bar)
 
 
-    
-    
-
     # --- Functions ---
     def upload_fasta(self):
         options = QFileDialog.Options()
@@ -313,7 +311,7 @@ DGSGKGAALVTAVACRLAQLTRV"""
             QMessageBox.warning(self, "No Target", "Please upload or paste a FASTA sequence first.")
 
     def open_blast_window(self):
-        from blast import BlastWindow
+        from .blast import BlastWindow
         fasta_sequence = self.text_fasta.toPlainText()
         self.blast_window = BlastWindow(fasta_sequence)
         self.blast_window.show()

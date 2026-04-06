@@ -11,9 +11,11 @@ import json
 import zipfile
 import time
 import hashlib
-from dynamic_align import DynamicAlign
-from chatmodel import Chatbot
+import pandas as pd
+from .dynamic_align import DynamicAlign
+from .chatmodel import Chatbot
 from Bio import SeqIO
+from .config import get_api_key
 
 class BlastWorker(QThread):
     finished = pyqtSignal(str)
@@ -166,10 +168,16 @@ class BlastWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle('Run BLAST')
         self.setMinimumSize(1000, 700)
-        self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
+        self.setWindowIcon(QIcon("..."))
         self.fasta_sequence = fasta_sequence
-        self.cache = {} 
-        self.chatbot = Chatbot() 
+        self.cache = {}
+        token = get_api_key()
+        try:
+            self.chatbot = Chatbot(token=token)
+        except Exception as e:
+            print(f"Chatbot disabled: {e}")
+            self.chatbot = None
+
         self.tableWidget = None 
         self.initGUI()
 
@@ -366,8 +374,11 @@ class BlastWindow(QMainWindow):
 
         # Generate and append bot response
         try:
-            response = self.chatbot.generate_response(user_msg)
-
+            if not self.chatbot:
+                response = "AI not configured. Please add API key in .env"
+            else:
+                response = self.chatbot.generate_response(user_msg)    
+                
             bot_html = f"""
             <div style="
                 margin: 0 0 18px 0;
@@ -389,7 +400,7 @@ class BlastWindow(QMainWindow):
 
         except Exception as e:
             self.chattext.append(
-                f"<span style='color:red;'>AutoMod: Error generating response: {e}</span>"
+                f"<span style='color:red;'>Vasuki: Error generating response: {e}</span>"
             )
 
         # Scroll to end
@@ -447,6 +458,8 @@ class BlastWindow(QMainWindow):
      self.tableWidget.setHorizontalHeaderLabels(headers)
      self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
+     blast_rows = []
+
      for row_idx, hit in enumerate(hits):
         desc = hit['description'][0]
         pdb_id = desc.get('id', '').split('|')[1] if 'id' in desc and '|' in desc.get('id', '') else ''
@@ -478,10 +491,18 @@ class BlastWindow(QMainWindow):
         self.tableWidget.setItem(row_idx, 7, QTableWidgetItem(str(identity)))
         self.tableWidget.setItem(row_idx, 8, QTableWidgetItem(str(positive)))
         self.tableWidget.setItem(row_idx, 9, QTableWidgetItem(str(gaps))) 
+
+        blast_rows.append([pdb_id, chain, accession, sciname, score, evalue, identity, positive, gaps])
      
 
      self.output_layout.addWidget(self.tableWidget)
      self.status_display.setPlainText('Blast Results are ready. Select templates and proceed')
+
+     # Set blast manager for chatbot
+     if self.chatbot:
+         df = pd.DataFrame(blast_rows, columns=headers[1:])
+         from .chatmodel import BlastManager
+         self.chatbot.blast_manager = BlastManager(df)
 
 
     def get_selected_templates(self):

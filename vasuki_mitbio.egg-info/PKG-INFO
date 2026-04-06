@@ -1,0 +1,30 @@
+Metadata-Version: 2.4
+Name: vasuki-mitbio
+Version: 1.1
+Summary: VASUKI: An Automated GUI for Comparative Protein Modeling
+Author: Ms.Shreya Sutar, Dr.K V Swamy
+License-Expression: MIT
+Keywords: vasuki,protein modeling,bioinformatics,homology modeling,BLAST,PyQt5
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: PyQt5>=5.15.4
+Requires-Dist: modeller
+Requires-Dist: biopython
+Requires-Dist: requests
+Requires-Dist: langchain
+Requires-Dist: transformers
+Requires-Dist: PyQtWebEngine
+Requires-Dist: python-dotenv
+Requires-Dist: pandas
+Requires-Dist: ramplot
+
+# AutoMod
+Automated Homology Modeling. Simplified. 

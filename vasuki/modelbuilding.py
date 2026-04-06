@@ -23,8 +23,8 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from modeller import Environ
 from modeller.automodel import AutoModel, assess
 
-from dynamic_align import DynamicAlign
-from validation import RamPlotGUI
+from .dynamic_align import DynamicAlign
+from .validation import RamPlotGUI
 
 
 
@@ -578,7 +578,7 @@ class ModelBuild(QMainWindow):
         self.btn_cancel.setEnabled(False)
 
     def open_visualizer(self, model):
-        from visualize import Visualizer
+        from .visualize import Visualizer
         filename = model.get('filename')
         output_dir = self.output_edit.text().strip()
 
@@ -604,7 +604,7 @@ def main():
     app = QApplication(sys.argv)
     gui = ModelBuild()
     gui.show()
-    sys.exit(app.exec_())
+    # sys.exit(app.exec_())
 
 
 if __name__ == "__main__":
