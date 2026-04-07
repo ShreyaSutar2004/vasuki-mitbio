@@ -32,7 +32,7 @@ pip install vasuki-mitbio
 1. Clone the repository:
    ```bash
    git clone https://github.com/ShreyaSutar2004/vasuki-mitbio.git
-   cd vasuki
+   cd vasuki-mitbio
    ```
 
 2. Install dependencies:
