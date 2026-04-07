@@ -23,6 +23,9 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from modeller import Environ
 from modeller.automodel import AutoModel, assess
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+
 from .dynamic_align import DynamicAlign
 from .validation import RamPlotGUI
 
@@ -154,7 +157,7 @@ class ModelBuild(QMainWindow):
         super().__init__()
         self.setWindowTitle('Modeller GUI - Model Building')
         self.setMinimumSize(1000, 700)
-        self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
+        self.setWindowIcon(QIcon(os.path.join(IMAGE_DIR, "Screenshot 2025-11-09 171245.png")))
         self.worker = None
         self.visualizers =[]
         self.initUI()

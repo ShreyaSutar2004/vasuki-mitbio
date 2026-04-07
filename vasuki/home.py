@@ -1,4 +1,5 @@
 
+import os
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, QStatusBar,
     QFileDialog, QTextEdit, QWidget, QMessageBox, QSizePolicy
@@ -6,13 +7,16 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPalette, QColor, QTextCursor, QFont, QIcon, QLinearGradient, QBrush, QPixmap
 from PyQt5.QtCore import Qt
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+
 class MainWindow(QMainWindow):
     def __init__(self, api_key=None):
         super().__init__()
         self.api_key = api_key
         self.setWindowTitle("Vasuki - Home")
         self.setMinimumSize(1500, 900)
-        self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
+        self.setWindowIcon(QIcon(os.path.join(IMAGE_DIR, "Screenshot 2025-11-09 171245.png")))
         self.initUI()
 
     def initUI(self):
@@ -30,7 +34,7 @@ class MainWindow(QMainWindow):
         mitheader.setContentsMargins(0, 0, 0, 0)
 
         mitbio_logo = QLabel()
-        mitbio_pixmap = QPixmap(r"D:/Shreya_VS_projects/Modeller_automation/Images/MIT_BIO_new_logo_clean.png")
+        mitbio_pixmap = QPixmap(os.path.join(IMAGE_DIR, "MIT_BIO_new_logo_clean.png"))
         mitbio_pixmap = mitbio_pixmap.scaled(250, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         mitbio_logo.setPixmap(mitbio_pixmap)
         mitbio_logo.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -38,7 +42,7 @@ class MainWindow(QMainWindow):
         
 
         mitadt_logo = QLabel()
-        mitadt_pixmap = QPixmap(r"D:/Shreya_VS_projects/Modeller_automation/Images/MIT_ADT_new_logo_clean.png")
+        mitadt_pixmap = QPixmap(os.path.join(IMAGE_DIR, "MIT_ADT_new_logo_clean.png"))
         mitadt_pixmap = mitadt_pixmap.scaled(250, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         mitadt_logo.setPixmap(mitadt_pixmap)
         mitadt_logo.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -49,7 +53,7 @@ class MainWindow(QMainWindow):
 
         # Load the logo image
         logo = QLabel()
-        pixmap = QPixmap(r"D:\Shreya_VS_projects\Modeller_automation\Images\image-removebg-preview.png")
+        pixmap = QPixmap(os.path.join(IMAGE_DIR, "image-removebg-preview.png"))
         pixmap = pixmap.scaled(340, 260, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)

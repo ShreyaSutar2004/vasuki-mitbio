@@ -14,6 +14,9 @@ from PyQt5.QtGui import QPixmap, QFont, QPalette, QBrush, QColor, QLinearGradien
 from .chatmodel import Chatbot
 from .config import get_api_key
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+
 
 class RamPlotWorker(QThread):
     finished = pyqtSignal(dict, list)
@@ -148,7 +151,7 @@ class RamPlotGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Ramachandran Plot Analysis")
-        self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
+        self.setWindowIcon(QIcon(os.path.join(IMAGE_DIR, "Screenshot 2025-11-09 171245.png")))
         self.resize(1400, 850)
         self.showMaximized()
 

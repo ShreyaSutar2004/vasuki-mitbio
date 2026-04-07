@@ -4,11 +4,14 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
 import tempfile, os
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+
 class Visualizer(QWidget):
     def __init__(self, output_dir):
         super().__init__()
         self.setWindowTitle("Protein Model Visualizer")
-        self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
+        self.setWindowIcon(QIcon(os.path.join(IMAGE_DIR, "Screenshot 2025-11-09 171245.png")))
         self.output_dir = output_dir
 
         # Create main layout ONCE here

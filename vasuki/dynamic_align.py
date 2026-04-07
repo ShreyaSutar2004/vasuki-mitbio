@@ -9,13 +9,16 @@ from PyQt5.QtGui import QFont, QIcon, QPalette, QLinearGradient, QColor, QBrush
 from PyQt5.QtCore import Qt, QSize
 import sys, os, requests
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+
 
 class DynamicAlign(QMainWindow):
     def __init__(self, selected_templates=None):
         super().__init__()
         self.setWindowTitle('Modeller — Dynamic Alignment')
         self.setMinimumSize(1200, 720)
-        self.setWindowIcon(QIcon("D:/Shreya_VS_projects/Modeller_automation/Images/Screenshot 2025-11-09 171245.png"))
+        self.setWindowIcon(QIcon(os.path.join(IMAGE_DIR, "Screenshot 2025-11-09 171245.png")))
         self.selected_templates = selected_templates or []
         self.uploaded_file = None
         self.upload_path = None

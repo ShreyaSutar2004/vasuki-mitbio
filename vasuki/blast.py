@@ -8,6 +8,10 @@ import sys
 from io import StringIO, BytesIO
 import requests
 import json
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
 import zipfile
 import time
 import hashlib
@@ -168,7 +172,7 @@ class BlastWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle('Run BLAST')
         self.setMinimumSize(1000, 700)
-        self.setWindowIcon(QIcon("..."))
+        self.setWindowIcon(QIcon(os.path.join(IMAGE_DIR, "Screenshot 2025-11-09 171245.png")))
         self.fasta_sequence = fasta_sequence
         self.cache = {}
         token = get_api_key()
