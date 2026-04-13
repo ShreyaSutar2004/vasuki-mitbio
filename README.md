@@ -36,10 +36,11 @@ Designed for researchers, students, and bioinformaticians, VASUKI eliminates the
 - MODELLER (free academic license from [salilab.org](https://salilab.org/modeller/))
 - Internet connection (for BLAST searches and AI chatbot)
 
-### From PyPI (Recommended)
+### Create a virtual environment (Recommended)
 
 ```bash
-pip install vasuki-mitbio
+python -m venv venv
+.\venv\Scripts\activate
 ```
 
 ### From Source
