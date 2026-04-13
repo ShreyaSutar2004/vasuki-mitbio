@@ -1,2 +1,2 @@
 recursive-include vasuki *.html
-recursive-include Images *
+recursive-include vasuki/Images *.png

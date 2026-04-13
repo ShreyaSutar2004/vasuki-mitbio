@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPalette, QColor, QTextCursor, QFont, QIcon, QLinearGradient, QBrush, QPixmap
 from PyQt5.QtCore import Qt
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGE_DIR = os.path.join(BASE_DIR, "Images")
 
 class MainWindow(QMainWindow):
     def __init__(self, api_key=None):

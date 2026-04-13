@@ -2,114 +2,129 @@
 
 [![PyPI version](https://badge.fury.io/py/vasuki-mitbio.svg)](https://pypi.org/project/vasuki-mitbio/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
 
-VASUKI is an automated graphical user interface (GUI) tool for comparative protein modeling, designed to simplify homology modeling workflows. Built with PyQt5, it integrates BLAST searches, dynamic alignments, MODELLER for generating 3D protein structures from amino acid sequences and generating Ramachandran plots. 
+---
 
-## Features
+## What is VASUKI?
 
-- **User-Friendly GUI**: Intuitive interface for protein modeling without command-line expertise.
-- **BLAST Integration**: Automated sequence similarity searches against protein databases.
-- **Dynamic Alignment**: Flexible sequence alignment tools for homology modeling.
-- **3D Model Building**: Uses MODELLER to generate high-quality protein structures.
-- **Visualization**: Built-in HTML-based model visualization.
-- **Validation**: Generates 2D and 3D Ramachandran plots. 
-- **Chat Interface**: AI-powered chat model for guidance and troubleshooting.
-- **Cross-Platform**: Supports Windows (primary), with potential for other OS.
+**VASUKI** (named after the mythical serpent king, symbolizing precision and automation) is a full-featured, automated GUI tool for **comparative protein modeling**. It brings together the most essential steps of homology-based protein structure prediction — BLAST search, sequence alignment, 3D model building, structure visualization, Ramachandran plot validation, and an AI-powered chat assistant — all within a single, user-friendly desktop interface.
+
+Designed for researchers, students, and bioinformaticians, VASUKI eliminates the need for command-line expertise and manual pipeline management, making protein structure prediction more accessible than ever.
+
+---
+
+## Key Features
+
+- **End-to-End Automated Pipeline** — From a raw amino acid sequence (FASTA format) to a validated 3D protein model, VASUKI handles the entire workflow in one place.
+- **BLAST Integration** — Performs automated sequence similarity searches against protein databases to identify the best homologous templates.
+- **Dynamic Sequence Alignment** — Flexible sequence alignment tools optimized for homology modeling.
+- **3D Model Building with MODELLER** — Leverages the industry-standard MODELLER engine to generate high-quality 3D protein structures.
+- **Structure Visualization** — Built-in HTML-based interactive model viewer for exploring protein structures directly within the app.
+- **Ramachandran Plot Validation** — Generates both 2D and 3D Ramachandran plots with automated residue analysis (favoured, allowed, disallowed regions) to assess model quality.
+- **AI Chat Assistant (Modssistant)** — Powered by Meta-Llama-3-8B via the HuggingFace Inference API, the integrated chatbot answers questions about BLAST results, model quality, and Ramachandran statistics in real time.
+- **Intuitive PyQt5 GUI** — Clean, modern interface designed for scientists, not developers. No command-line knowledge required.
+
+---
 
 ## Installation
 
 ### Prerequisites
+
 - Python 3.9 or higher
-- MODELLER (requires license from [salilab.org](https://salilab.org/modeller/))
-- Internet connection for BLAST searches
+- MODELLER (free academic license from [salilab.org](https://salilab.org/modeller/))
+- Internet connection (for BLAST searches and AI chatbot)
 
 ### From PyPI (Recommended)
+
 ```bash
 pip install vasuki-mitbio
 ```
 
 ### From Source
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/ShreyaSutar2004/vasuki-mitbio.git
-   cd vasuki-mitbio
-   ```
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   # Or using pyproject.toml
-   pip install .
-   ```
+```bash
+git clone https://github.com/ShreyaSutar2004/vasuki-mitbio.git
+cd vasuki-mitbio
+pip install .
+```
 
-3. Chatbot Setup
- Go to (https://huggingface.co/)
- Login or Create a new account
- Navigate to Settings --> Access Tokens
- Select Read access
- Copy the generated token.
- 
+---
+
 ## Usage
 
 ### Launch the GUI
-After installation, run:
+
 ```bash
 run-vasuki
 ```
 
-### Command-Line Scripts
-- `run-vasuki`: Launches the main GUI application.
+### Setting Up the AI Chatbot
 
-### Initializing Chatbot
-An .env file will be automatically created in your working directory. 
-```bash
-HUGGINGFACEHUB_API_TOKEN= your_api_key_here
+VASUKI's built-in AI assistant requires a free HuggingFace API token:
+
+1. Go to [huggingface.co](https://huggingface.co/) and log in or create an account.
+2. Navigate to **Settings → Access Tokens** and generate a token with **Read** access.
+3. An `.env` file will be automatically created in your working directory on first launch. Add your token:
+
+```env
+HUGGINGFACEHUB_API_TOKEN=your_token_here
 ```
-(restart the application if needed)
+
+4. Restart the application if needed.
 
 ### Workflow
-1. Input your target protein sequence (FASTA format).
-2. Perform BLAST search to find homologous templates.
-3. Align sequences dynamically.
-4. Build 3D models using MODELLER.
-5. Visualize and validate results.
 
+1. **Input** your target protein sequence in FASTA format.
+2. **BLAST Search** — Find homologous template structures from the PDB.
+3. **Align Sequences** — Dynamically align your query with the selected template(s).
+4. **Build 3D Model** — Generate protein structures using MODELLER.
+5. **Visualize** — Explore your model interactively in the built-in viewer.
+6. **Validate** — Run Ramachandran plot analysis to assess model quality.
+7. **Ask Modssistant** — Query the AI chatbot about your results.
+
+---
 
 ## Dependencies
 
-- PyQt5: GUI framework
-- MODELLER: Protein structure modeling
-- Biopython: Bioinformatics tools
-- Requests: HTTP requests for BLAST
-- LangChain & Transformers: AI chat functionality
-- Pandas: Data handling
-- Other utilities: python-dotenv, ramplot
+| Package | Purpose |
+|---|---|
+| PyQt5 | GUI framework |
+| MODELLER | Protein structure modeling |
+| Biopython | Bioinformatics utilities |
+| Requests | BLAST HTTP requests |
+| LangChain & Transformers | AI chat backend |
+| HuggingFace Hub | LLM API integration |
+| Pandas | Data handling |
+| ramplot | Ramachandran plot generation |
+| python-dotenv | API key management |
+| setuptools (≤69.5.1) | Required by ramplot |
 
-## Configuration
-
-Create a `.env` file in the project root for API keys and custom settings (e.g., for the chat model).
+---
 
 ## Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome!
 
 1. Fork the repository.
-2. Create a feature branch.
-3. Submit a pull request with detailed changes.
+2. Create a feature branch (`git checkout -b feature/your-feature`).
+3. Submit a pull request with a clear description of your changes.
 
-For major changes, open an issue first to discuss.
+For major changes, please open an issue first to discuss your proposal.
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
 
 ## Authors
 
-- **Ms. Shreya Sutar**: Developer
-- **Dr. K V Swamy**: Supervisor
+- **Ms. Shreya Sutar** — Developer
+- **Dr. K V Swamy** — Supervisor
 
-If you use VASUKI in your research, please cite:
 
-Sutar, S., & Swamy, K. V. (2024). VASUKI: An Automated GUI for Comparative Protein Modeling. [Repository/Preprint Link]
-
-*VASUKI is named after the mythical serpent king, symbolizing precision and automation in protein modeling.* 
+*VASUKI — bridging the gap between sequence and structure, one model at a time.*

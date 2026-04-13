@@ -10,7 +10,7 @@ load_dotenv()
 class Chatbot:
     def __init__(self, token=None):
 
-        self.model_name = "mistralai/Mistral-7B-Instruct-v0.2"
+        self.model_name = "meta-llama/Meta-Llama-3-8B-Instruct"
         self.client = None
         self.blast_manager = None
         
