@@ -9,7 +9,7 @@
 
 ## What is VASUKI?
 
-**VASUKI** (named after the mythical serpent king, symbolizing precision and automation) is a full-featured, automated GUI tool for **comparative protein modeling**. It brings together the most essential steps of homology-based protein structure prediction — BLAST search, sequence alignment, 3D model building, structure visualization, Ramachandran plot validation, and an AI-powered chat assistant — all within a single, user-friendly desktop interface.
+**VASUKI** (named after the mythical serpent king) is a full-featured, automated GUI tool for **comparative protein modeling**. It brings together the most essential steps of homology-based protein structure prediction — BLAST search, sequence alignment, 3D model building, structure visualization, Ramachandran plot validation, and an AI-powered chat assistant: all within a single, user-friendly desktop interface.
 
 Designed for researchers, students, and bioinformaticians, VASUKI eliminates the need for command-line expertise and manual pipeline management, making protein structure prediction more accessible than ever.
 
@@ -34,6 +34,7 @@ Designed for researchers, students, and bioinformaticians, VASUKI eliminates the
 
 - Python 3.9 or higher
 - MODELLER (free academic license from [salilab.org](https://salilab.org/modeller/))
+- Ensure the Modeller executable directory is added to your system's PATH environment variable.
 - Internet connection (for BLAST searches and AI chatbot)
 
 ### Create a virtual environment (Recommended)
