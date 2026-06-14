@@ -1,0 +1,73 @@
+InSIde TorsionAngleCalculation 
+ 5HEX.pdb
+Calculate Torsion angles for Chain ID :A
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainA Residue 17 ASP PHI:None PSI:-21.795170551716808 Omega:None
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainA Residue 118 ILE PHI:-82.28544897008923 PSI:None Omega:174.33227962787706
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainA Residue 122 SER PHI:None PSI:130.82452722647466 Omega:None
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainA Residue 169 VAL PHI:-140.5029341836823 PSI:None Omega:-169.91512086554727
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainA Residue 182 GLY PHI:None PSI:16.794563805555235 Omega:None
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainA Residue 911 ILE PHI:-85.58498688741967 PSI:None Omega:-174.47205863470757
+Calculate Torsion angles for Chain ID :B
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainB Residue 17 ASP PHI:None PSI:-155.93496948011713 Omega:None
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainB Residue 170 SER PHI:-151.27052570891686 PSI:None Omega:-177.8723239252985
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainB Residue 177 SER PHI:None PSI:146.36050223636897 Omega:None
+Error : Unable to calculate  torsion angles 5HEX.pdb ChainB Residue 913 GLU PHI:-87.06723444980739 PSI:None Omega:167.96509179649874
+Torsion Angles calculation complited for 5HEX.pdb
+alignment.ali
+Error :Unable to load PDB Filesalignment.ali
+HXK3.B99990001.pdb
+Calculate Torsion angles for Chain ID :A
+Error : Unable to calculate  torsion angles HXK3.B99990001.pdb ChainA Residue 1 MET PHI:None PSI:-105.82150352924356 Omega:None
+Error : Unable to calculate  torsion angles HXK3.B99990001.pdb ChainA Residue 923 VAL PHI:-69.16272786764881 PSI:None Omega:-179.88373673427233
+Torsion Angles calculation complited for HXK3.B99990001.pdb
+HXK3.B99990002.pdb
+Calculate Torsion angles for Chain ID :A
+Error : Unable to calculate  torsion angles HXK3.B99990002.pdb ChainA Residue 1 MET PHI:None PSI:163.2222668543979 Omega:None
+Error : Unable to calculate  torsion angles HXK3.B99990002.pdb ChainA Residue 923 VAL PHI:-80.85750197925225 PSI:None Omega:-179.50386418135616
+Torsion Angles calculation complited for HXK3.B99990002.pdb
+HXK3.B99990003.pdb
+Calculate Torsion angles for Chain ID :A
+Error : Unable to calculate  torsion angles HXK3.B99990003.pdb ChainA Residue 1 MET PHI:None PSI:-101.9780844740904 Omega:None
+Error : Unable to calculate  torsion angles HXK3.B99990003.pdb ChainA Residue 923 VAL PHI:-90.76471807014347 PSI:None Omega:-179.30831422255193
+Torsion Angles calculation complited for HXK3.B99990003.pdb
+HXK3.D00000001
+Error :Unable to load PDB FilesHXK3.D00000001
+HXK3.D00000002
+Error :Unable to load PDB FilesHXK3.D00000002
+HXK3.D00000003
+Error :Unable to load PDB FilesHXK3.D00000003
+HXK3.ini
+Calculate Torsion angles for Chain ID :A
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 1 MET PHI:None PSI:-179.94624360894184 Omega:None
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 99 THR PHI:-179.97718754207935 PSI:None Omega:179.99910063042554
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 100 GLY PHI:None PSI:144.02363845827918 Omega:None
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 132 MET PHI:179.99547581496014 PSI:None Omega:179.98930100392076
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 133 LEU PHI:None PSI:-63.90983906917039 Omega:None
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 134 GLY PHI:-82.28544897008923 PSI:None Omega:174.33227962787706
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 135 ALA PHI:None PSI:130.82452722647466 Omega:None
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 194 GLU PHI:-179.99831424610866 PSI:None Omega:-179.96754984853746
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 195 GLY PHI:None PSI:16.794563805555235 Omega:None
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 516 ALA PHI:-91.43523892934944 PSI:None Omega:-178.3060219080353
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 517 SER PHI:None PSI:134.32955548584297 Omega:None
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 556 THR PHI:-102.13888956184601 PSI:None Omega:169.4591645407743
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 557 THR PHI:None PSI:-164.36526090689108 Omega:None
+Error : Unable to calculate  torsion angles HXK3.ini ChainA Residue 923 VAL PHI:179.99899060815278 PSI:None Omega:-179.9800251925005
+Torsion Angles calculation complited for HXK3.ini
+HXK3.rsr
+Error :Unable to load PDB FilesHXK3.rsr
+HXK3.sch
+Error :Unable to load PDB FilesHXK3.sch
+HXK3.V99990001
+Error :Unable to load PDB FilesHXK3.V99990001
+HXK3.V99990002
+Error :Unable to load PDB FilesHXK3.V99990002
+HXK3.V99990003
+Error :Unable to load PDB FilesHXK3.V99990003
+log.dat
+Error :Unable to load PDB Fileslog.dat
+PhiPsiTauCaiOmegaBFactorCalculation.csv
+Error :Unable to load PDB FilesPhiPsiTauCaiOmegaBFactorCalculation.csv
+Plots
+Error :Unable to load PDB FilesPlots
+target.ali
+Error :Unable to load PDB Filestarget.ali
