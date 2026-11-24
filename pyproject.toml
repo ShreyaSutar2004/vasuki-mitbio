@@ -19,7 +19,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
-  "Programming Language :: Pytshon :: 3.11",
+  "Programming Language :: Python :: 3.11",
   "Operating System :: Microsoft :: Windows",
   "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
@@ -29,12 +29,13 @@ dependencies = [
   "PyQt5>=5.15.4",
   "modeller",
   "biopython",
+  "openmm",
+  "pdbfixer",
   "requests",
   "langchain",
-  "transformers",
   "huggingface-hub",
+  "llama-cpp-python",
   "PyQtWebEngine",
-  "python-dotenv",
   "pandas",
   "ramplot"
 ]

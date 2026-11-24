@@ -1,101 +1,139 @@
+
 import sys
 import os
 import csv
 import subprocess
-from turtle import color
+import shutil
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QFileDialog, QTextEdit, QVBoxLayout, QHBoxLayout, QCheckBox,
     QMessageBox, QFrame, QLineEdit, QSplitter, QSizePolicy
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QPixmap, QFont, QPalette, QBrush, QColor, QLinearGradient, QTextCursor, QIcon
+import html
 from .chatmodel import Chatbot
-from .config import get_api_key
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+
+
+
+# ramplot 1.0.x crashes (UnboundLocalError) for a model that has NO disallowed residues in the
+# "standard" statistics: it forgets to define the counter in that branch. Excellent models
+# (e.g. relaxed ones) can hit this, so we run ramplot through this small wrapper, which defines
+# the missing counter in memory (the installed library is not modified) and then calls the same
+# function the ramplot command line calls, with the same arguments.
+_RAMPLOT_RUNNER = r"""
+import sys, re, importlib.util
+inp, out = sys.argv[1], sys.argv[2]
+spec = importlib.util.find_spec("ramplot.ramplot")
+src = open(spec.origin, encoding="utf-8", newline="").read()
+src = re.sub(r"([ \t]+)ResidueDisallowedRegionStd=0",
+             r"\1CountResidueDisallowedRegionStd=0\n\1ResidueDisallowedRegionStd=0", src)
+ns = {"__name__": "ramplot_patched", "__file__": spec.origin, "__package__": "ramplot"}
+exec(compile(src, spec.origin, "exec"), ns)
+ns["TorsionAngleCalculation"](inp, out, "0", "600", "png")
+"""
 
 
 class RamPlotWorker(QThread):
     finished = pyqtSignal(dict, list)
     error = pyqtSignal(str)
 
-    def __init__(self, input_dir, output_dir):
+    def __init__(self, input_dir, output_dir, files=None):
         super().__init__()
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.files = files
 
     def run(self):
         try:
-            self.run_ramplot()
-            summary = self.parse_analysis()
-            plots = self.collect_plots()
+            summary, plots = self.run_per_model()
             self.finished.emit(summary, plots)
         except Exception as e:
             self.error.emit(str(e))
 
-    def run_ramplot(self):
+    def run_per_model(self):
+        """Run ramplot separately on every PDB so each model gets its own
+        statistics (a single run on a folder pools all PDBs together)."""
         os.makedirs(self.output_dir, exist_ok=True)
+        if self.files:
+            # exactly the models handed over by Model Building (raw + relaxed)
+            pdbs = sorted(os.path.basename(f) for f in self.files
+                          if f.lower().endswith(".pdb")
+                          and os.path.exists(os.path.join(self.input_dir, os.path.basename(f))))
+        else:
+            pdbs = sorted(f for f in os.listdir(self.input_dir)
+                          if f.lower().endswith(".pdb"))
+        if not pdbs:
+            raise RuntimeError("No .pdb files found in the input folder.")
 
-        cmd = [
-            "ramplot", "pdb",
-            "-i", self.input_dir,
-            "-m", "0",
-            "-r", "600",
-            "-p", "png",
-            "-o", self.output_dir
-        ]
-        subprocess.run(cmd, check=True)
+        summary, plots = {}, []
+        for pdb in pdbs:
+            name = os.path.splitext(pdb)[0]
+            tmp_in = os.path.join(self.output_dir, f"_in_{name}")
+            out = os.path.join(self.output_dir, f"ram_{name}")
+            os.makedirs(tmp_in, exist_ok=True)
+            shutil.copy(os.path.join(self.input_dir, pdb), tmp_in)
 
-    def parse_analysis(self):
-        summary = {
-            "total": "NA",
-            "favoured": "NA",
-            "allowed": "NA",
-            "disallowed": "NA"
-        }
+            csv_path = os.path.join(out, "Analysis.csv")
+            err = ""
+            attempts = (
+                [sys.executable, "-c", _RAMPLOT_RUNNER, tmp_in, out],
+                ["ramplot", "pdb", "-i", tmp_in, "-m", "0", "-r", "600", "-p", "png", "-o", out],
+            )
+            for cmd in attempts:
+                try:
+                    proc = subprocess.run(cmd, capture_output=True, text=True)
+                except OSError as e:
+                    err = str(e)
+                    continue
+                if proc.returncode == 0 and os.path.exists(csv_path):
+                    err = ""
+                    break
+                lines = ((proc.stderr or "") + (proc.stdout or "")).strip().splitlines()
+                err = lines[-1] if lines else "ramplot failed"
+            shutil.rmtree(tmp_in, ignore_errors=True)
 
-        csv_path = os.path.join(self.output_dir, "Analysis.csv")
-        in_standard = False
+            if err or not os.path.exists(csv_path):
+                summary[name] = {"total": "NA", "favoured": "NA", "allowed": "NA",
+                                 "disallowed": "NA", "note": f"ramplot failed: {err}"}
+                continue
 
+            summary[name] = self.parse_analysis(csv_path)
+            plot_dir = os.path.join(out, "Plots")
+            if os.path.isdir(plot_dir):
+                plots += [os.path.join(plot_dir, f)
+                          for f in sorted(os.listdir(plot_dir)) if f.endswith(".png")]
+        return summary, plots
+
+    def parse_analysis(self, csv_path):
+        """Read the six-category Ramachandran statistics (glycine/proline
+        handled separately, comparable to MolProbity)."""
+        s = {"total": "NA", "favoured": "NA", "allowed": "NA", "disallowed": "NA"}
+        section = None
         with open(csv_path, encoding="utf-8") as f:
-            reader = csv.reader(f)
-            for row in reader:
+            for row in csv.reader(f):
                 if not row:
                     continue
-
                 key = row[0].lower()
-
                 if "total residue" in key:
-                    summary["total"] = row[1]
-
-                elif "ramachandran plot (standard)" in key:
-                    in_standard = True
-
-                elif "six category" in key:
-                    break
-
-                elif in_standard and "favoured" in key and len(row) >= 3:
-                    summary["favoured"] = f"{row[1].strip()} ({row[2].strip()})"
-
-
-                elif in_standard and key.startswith("allowed") and len(row) >= 3:
-                 summary["allowed"] = f"{row[1].strip()} ({row[2].strip()})"
-
-                elif in_standard and "disallowed" in key and len(row) >= 3:
-                    summary["disallowed"] = f"{row[1].strip()} ({row[2].strip()})"
-
-        return summary
-
-    def collect_plots(self):
-        plot_dir = os.path.join(self.output_dir, "Plots")
-        return [
-            os.path.join(plot_dir, f)
-            for f in sorted(os.listdir(plot_dir))
-            if f.endswith(".png")
-        ]
+                    s["total"] = row[1]
+                elif "(standard)" in key:
+                    section = "standard"
+                elif "six categories" in key:
+                    section = "six"
+                elif section == "six" and len(row) >= 3:
+                    val = f"{row[1].strip()} ({row[2].strip().strip(chr(40)+chr(41))})"
+                    if key.startswith("favoured"):
+                        s["favoured"] = val
+                    elif key.startswith("allowed"):
+                        s["allowed"] = val
+                    elif key.startswith("disallowed"):
+                        s["disallowed"] = val
+        return s
 
 
 class SquareImage(QLabel):
@@ -148,26 +186,37 @@ class SquareImage(QLabel):
 # Main GUI
 # =========================
 class RamPlotGUI(QMainWindow):
-    def __init__(self):
+    def __init__(self, input_dir=None, files=None):
         super().__init__()
         self.setWindowTitle("Ramachandran Plot Analysis")
         self.setWindowIcon(QIcon(os.path.join(IMAGE_DIR, "Screenshot 2025-11-09 171245.png")))
         self.resize(1400, 850)
         self.showMaximized()
 
-        token = get_api_key()
         try:
-            self.chatbot = Chatbot(token=token)
+            self.chatbot = Chatbot()
         except Exception as e:
-            print(f"Chatbot disabled: {e}")
+            print(f"Chatbot initialization failed: {e}")
             self.chatbot = None
         self.plots = []
         self.plot_index = 0
         self.analysis = {}
         self.input_dir = None
         self.output_dir = None
+        self.model_files = list(files) if files else None
 
         self.build_ui()
+
+        # Models handed over by Model Building: validate them straight away
+        if input_dir and os.path.isdir(input_dir):
+            self.input_dir = input_dir
+            self.output_dir = input_dir
+            n = len(self.model_files) if self.model_files else sum(
+                1 for f in os.listdir(input_dir) if f.lower().endswith(".pdb"))
+            self.analysis_box.setText(
+                f"Received {n} model(s) from Model Building. "
+                "Running Ramachandran analysis...")
+            QTimer.singleShot(300, self.run)
 
     def build_ui(self):
 
@@ -368,7 +417,11 @@ class RamPlotGUI(QMainWindow):
             self.output_button.setEnabled(True)
 
     def select_input(self):
-        self.input_dir = QFileDialog.getExistingDirectory(self)
+        folder = QFileDialog.getExistingDirectory(self)
+        if not folder:
+            return
+        self.input_dir = folder
+        self.model_files = None          # a manually chosen folder = all its .pdb files
         # Initialize output_dir based on checkbox state
         if self.checkbox.isChecked():
             self.output_dir = self.input_dir
@@ -397,7 +450,7 @@ class RamPlotGUI(QMainWindow):
             QMessageBox.warning(self, "Error", "Select output folder or check 'Same as Input Path'")
             return
 
-        self.worker = RamPlotWorker(self.input_dir, self.output_dir)
+        self.worker = RamPlotWorker(self.input_dir, self.output_dir, self.model_files)
         self.worker.finished.connect(self.display)
         self.worker.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
         self.worker.start()
@@ -407,13 +460,17 @@ class RamPlotGUI(QMainWindow):
         self.plots = plots
         self.plot_index = 0
 
+        lines = []
+        for name, s in summary.items():
+            if s.get("note"):
+                lines.append(f"{name}: {s['note']}")
+            else:
+                lines.append(
+                    f"{name}: {s['total']} res | Favoured {s['favoured']} | "
+                    f"Allowed {s['allowed']} | Disallowed {s['disallowed']}")
+        self.analysis_text = "\n".join(lines)
         self.analysis_box.setText(
-            f"Ramachandran Plot Analysis\n\n"
-            f"Total Residues: {summary['total']}\n"
-            f"Favoured: {summary['favoured']}\n"
-            f"Allowed: {summary['allowed']}\n"
-            f"Disallowed: {summary['disallowed']}"
-        )
+            "Ramachandran Analysis (six-category, per model)\n\n" + self.analysis_text)
 
         if plots:
             self.plot_box.set_image(plots[0])
@@ -434,19 +491,6 @@ class RamPlotGUI(QMainWindow):
         if not user_msg:
             return
         
-        prompt = f"""
-        You are an expert in protein structure validation.
-
-        Ramachandran statistics:
-        Total residues: {self.analysis.get('total')}
-        Favoured: {self.analysis.get('favoured')}
-        Allowed: {self.analysis.get('allowed')}
-        Disallowed: {self.analysis.get('disallowed')}
-
-        If the user asks queries, provide concise and informative answers in 3-4 lines. 
-        Question: {user_msg}
-        """
-
         # User message (Researcher)
         user_html = f"""
         <div style="
@@ -470,11 +514,14 @@ class RamPlotGUI(QMainWindow):
 
         # Generate and append bot response
         if not self.chatbot:
-            self.chattext.append("<span style='color:red;'>Vasuki: Chatbot is disabled. Please set your Hugging Face API token.</span>")
+            self.chattext.append("<span style='color:red;'>Vasuki: Chatbot is disabled. </span>")
             return
 
         try:
-            response = self.chatbot._llm_response(prompt)
+            response = self.chatbot.generate_ramachandran_response(
+                question=user_msg,
+                analysis_text=getattr(self, "analysis_text", "")
+            )
 
             bot_html = f"""
             <div style="
@@ -489,7 +536,7 @@ class RamPlotGUI(QMainWindow):
                     font-weight: 400;
                     color: #222222;
                 ">
-                    {response}
+                    {html.escape(response).replace(chr(10), "<br>")}
                 </span>
             </div>
             """
@@ -503,7 +550,7 @@ class RamPlotGUI(QMainWindow):
         # Scroll to end
         self.chattext.moveCursor(QTextCursor.End)
         self.chattext.ensureCursorVisible()
-        self.chat_input.clear()
+        # self.chat_input.clear()
 
 
 # =========================

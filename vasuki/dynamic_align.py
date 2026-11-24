@@ -7,10 +7,303 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont, QIcon, QPalette, QLinearGradient, QColor, QBrush
 from PyQt5.QtCore import Qt, QSize
-import sys, os, requests
+import sys, os, shutil, html, requests
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMAGE_DIR = os.path.join(BASE_DIR, 'Images')
+
+MAX_OVERHANG = 40
+# None = MODELLER defaults. Set e.g. (-600, -600) to compare alignments.
+GAP_PENALTIES_1D = None
+
+
+def _read_pir(path):
+    recs = []
+    with open(path) as fh:
+        text = fh.read()
+    for chunk in text.split('>P1;')[1:]:
+        lines = [l.rstrip() for l in chunk.strip().splitlines()]
+        recs.append((lines[0].strip(), lines[1],
+                     ''.join(lines[2:]).replace('*', '').replace(' ', '')))
+    return recs
+
+
+_THREE2ONE = {
+    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
+    'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
+    'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
+    'TYR': 'Y', 'VAL': 'V'}
+
+
+def _template_ss(pdb_path, chain, first_res, seq):
+    """Secondary structure of the template residues from the PDB HELIX/SHEET
+    records: one character per residue ('H' helix, 'E' strand, ' ' other).
+    Returns None if the file/records are missing or do not match `seq`."""
+    if not os.path.exists(pdb_path):
+        return None
+    helices, strands, res, seen = [], [], [], set()
+    with open(pdb_path) as fh:
+        for line in fh:
+            rec = line[:6]
+            try:
+                if rec == 'HELIX ' and line[19] == chain and line[31] == chain:
+                    helices.append((int(line[21:25]), int(line[33:37])))
+                elif rec == 'SHEET ' and line[21] == chain and line[32] == chain:
+                    strands.append((int(line[22:26]), int(line[33:37])))
+                elif (rec == 'ATOM  ' and line[12:16].strip() == 'CA'
+                      and line[21] == chain and line[16] in ' A'):
+                    key = (int(line[22:26]), line[26])
+                    if key not in seen:
+                        seen.add(key)
+                        res.append((key[0], _THREE2ONE.get(line[17:20], 'X')))
+            except (ValueError, IndexError):
+                continue
+    if not res or not (helices or strands):
+        return None
+    start = 0
+    if first_res is not None:
+        idx = [i for i, (num, _) in enumerate(res) if num == first_res]
+        if not idx:
+            return None
+        start = idx[0]
+    chunk = res[start:start + len(seq)]
+    if len(chunk) != len(seq) or ''.join(a for _, a in chunk) != seq:
+        return None
+    out = []
+    for num, _ in chunk:
+        if any(s <= num <= e for s, e in helices):
+            out.append('H')
+        elif any(s <= num <= e for s, e in strands):
+            out.append('E')
+        else:
+            out.append(' ')
+    return ''.join(out)
+
+
+def _ss_columns(header, ts, pdb_dir):
+    """Per-alignment-column helix/strand string for one template (or None)."""
+    f = header.split(':')
+    if len(f) < 4:
+        return None
+    pdb_path = os.path.join(pdb_dir, f[1].strip())
+    if not os.path.exists(pdb_path) and os.path.exists(pdb_path + '.pdb'):
+        pdb_path += '.pdb'
+    first = f[2].strip()
+    try:
+        first_res = int(first)
+    except ValueError:
+        first_res = None
+    ss = _template_ss(pdb_path, f[3].strip(), first_res, ts.replace('-', ''))
+    if not ss:
+        return None
+    it = iter(ss)
+    return ''.join(next(it) if c != '-' else ' ' for c in ts)
+
+
+def _render_alignment(path, title, width=60, pdb_dir='.', kept=None):
+    """Readable pairwise rendering (each template vs target) of a PIR file.
+    Adds helix/strand rows for the template when the PDB has HELIX/SHEET
+    records, and a TRIMMED row marking columns removed for model building
+    (pass `kept` = column indices that were kept)."""
+    recs = _read_pir(path)
+    temps = [r for r in recs if r[1].lower().startswith('structure')]
+    targs = [r for r in recs if r[1].lower().startswith('sequence')]
+    qc, _, qs = targs[-1]
+    n = len(qs)
+    trim_line = None
+    if kept is not None and len(kept) < n:
+        kept_set = set(kept)
+        trim_line = ''.join(' ' if i in kept_set else 'x' for i in range(n))
+
+    out = [title, '=' * len(title),
+           f"Target  : {qc} ({sum(c != '-' for c in qs)} residues)",
+           f"Columns : {n}"]
+    for tc, _, ts in temps:
+        aligned = sum(1 for a, b in zip(ts, qs) if a != '-' and b != '-')
+        ident = sum(1 for a, b in zip(ts, qs) if a == b and a != '-')
+        out.append(f"Template {tc}: {sum(c != '-' for c in ts)} residues | "
+                   f"identity {ident}/{aligned} ({100 * ident / max(aligned, 1):.1f}%) | "
+                   f"covers {aligned} target residues")
+    out.append('')
+    any_ss = False
+    for tc, th, ts in temps:
+        ss_cols = _ss_columns(th, ts, pdb_dir)
+        any_ss = any_ss or bool(ss_cols)
+        out.append(f"--- {tc} vs {qc} ---")
+        for i in range(0, n, width):
+            a_row, b_row = ts[i:i + width], qs[i:i + width]
+            cons = ''.join('*' if a == b and a != '-' else (' ' if '-' in (a, b) else '.')
+                           for a, b in zip(a_row, b_row))
+            out += [f"{i + 1:>6}", f"{tc:<12}{a_row}"]
+            if ss_cols:
+                out.append(f"{'H/E':<12}{ss_cols[i:i + width]}")
+            out += [f"{qc:<12}{b_row}", f"{'':<12}{cons}"]
+            if trim_line:
+                out.append(f"{'TRIMMED':<12}{trim_line[i:i + width]}")
+            out.append('')
+    legend = '* identical   . mismatch   (blank) gap'
+    if any_ss:
+        legend += '   H helix / E strand (template, from PDB HELIX/SHEET records)'
+    if trim_line:
+        legend += '   x column removed for model building'
+    out.append(legend)
+    return '\n'.join(out)
+
+
+def write_alignment_report(full_ali, used_ali, out_path, info=None, pdb_dir='.'):
+    """Write the full (gapped) alignment, the alignment used for modelling
+    (if trimmed) and the list of trimmed residues to one text file.
+    The full alignment carries helix/strand rows and marks the trimmed columns."""
+    kept = info.get("kept") if info else None
+    parts = [_render_alignment(
+        full_ali, "FULL alignment (untrimmed; gaps = no template coverage)",
+        pdb_dir=pdb_dir, kept=kept if (info and info.get("dropped")) else None)]
+    if info and info.get("dropped"):
+        parts.append(_render_alignment(
+            used_ali, "ALIGNMENT USED FOR MODEL BUILDING (template-free termini trimmed)",
+            pdb_dir=pdb_dir))
+        parts.append('\n'.join([
+            "TRIMMED RESIDUES (no template coverage; excluded from model building)",
+            "=====================================================================",
+            f"N-terminus ({len(info['cut_lead'])}): {info['cut_lead'] or '-'}",
+            f"C-terminus ({len(info['cut_trail'])}): {info['cut_trail'] or '-'}",
+            "Template residues were not altered. Internal gaps are never trimmed.",
+            "Model numbering runs 1..N over the trimmed target, not original numbering."]))
+    else:
+        parts.append("No trimming was applied; the full alignment was used for model building.")
+    if info and (info.get("islands_lead") or info.get("islands_trail")):
+        parts.append(
+            "WARNING: isolated template residues lie outside the main aligned block "
+            f"(N-term: {info.get('islands_lead', 0)}, C-term: {info.get('islands_trail', 0)}). "
+            "That end was not trimmed. The alignment is fragmented; verify it before modelling.")
+    with open(out_path, 'w', encoding='utf-8') as fh:
+        fh.write('\n\n\n'.join(parts) + '\n')
+
+
+def trim_terminal_overhangs(ali_path, min_block=5, max_overhang=MAX_OVERHANG,
+                            trim_long=False):
+    """Trim target residues at the termini that no template covers
+    (signal peptides, disordered tails) so MODELLER does not have to invent
+    them across a template-free gap.
+
+    Flanks longer than max_overhang are only trimmed when trim_long=True.
+    Returns dict: dropped, lead, trail (flank sizes before trimming),
+    target_len, covered (target residues aligned to a template).
+    """
+    info = {"dropped": 0, "lead": 0, "trail": 0, "target_len": 0, "covered": 0,
+            "cut_lead": "", "cut_trail": "", "islands_lead": 0, "islands_trail": 0,
+            "kept": None}
+    with open(ali_path) as fh:
+        text = fh.read()
+
+    recs = []
+    for chunk in text.split('>P1;')[1:]:
+        lines = [l.rstrip() for l in chunk.strip().splitlines()]
+        code, header = lines[0].strip(), lines[1]
+        seq = ''.join(lines[2:]).replace('*', '').replace(' ', '')
+        recs.append([code, header, seq])
+
+    templ = [r for r in recs if r[1].lower().startswith('structure')]
+    targ = [r for r in recs if r[1].lower().startswith('sequence')]
+    if not templ or not targ:
+        return info
+    tgt = targ[-1][2]
+    n = len(tgt)
+    covered = [any(r[2][i] != '-' for r in templ) for i in range(n)]
+    info["target_len"] = sum(c != '-' for c in tgt)
+    info["covered"] = sum(1 for i in range(n) if covered[i] and tgt[i] != '-')
+
+    first = last = None
+    run = 0
+    for i in range(n):
+        run = run + 1 if covered[i] else 0
+        if run >= min_block:
+            first = i - min_block + 1
+            break
+    run = 0
+    for i in range(n - 1, -1, -1):
+        run = run + 1 if covered[i] else 0
+        if run >= min_block:
+            last = i + min_block - 1
+            break
+    if first is None or last is None:
+        return info
+
+    lead = sum(1 for i in range(first) if not covered[i] and tgt[i] != '-')
+    trail = sum(1 for i in range(last + 1, n) if not covered[i] and tgt[i] != '-')
+    info["lead"], info["trail"] = lead, trail
+
+    def _stub_ok(cols, at_start):
+        # A flank may be trimmed only if it has no template residues, or just a
+        # short (<=3) stub at the very end of the alignment (e.g. expression Met).
+        # Otherwise trimming would glue distant target residues together.
+        if not cols:
+            return True
+        if len(cols) > 3:
+            return False
+        edge = list(range(len(cols))) if at_start else list(range(n - len(cols), n))
+        return cols == edge
+
+    lead_cov = [i for i in range(first) if covered[i]]
+    trail_cov = [i for i in range(last + 1, n) if covered[i]]
+    lead_ok = _stub_ok(lead_cov, True)
+    trail_ok = _stub_ok(trail_cov, False)
+    info["islands_lead"] = 0 if lead_ok else len(lead_cov)
+    info["islands_trail"] = 0 if trail_ok else len(trail_cov)
+    cut_lead = lead_ok and (trim_long or lead <= max_overhang)
+    cut_trail = trail_ok and (trim_long or trail <= max_overhang)
+
+    keep = [i for i in range(n)
+            if covered[i]
+            or first <= i <= last
+            or (i < first and not cut_lead)
+            or (i > last and not cut_trail)]
+    info["dropped"] = n - len(keep)
+    info["kept"] = keep          # column indices (of the input file) that were kept
+    if info["dropped"] == 0:
+        return info
+    kept = set(keep)
+    info["cut_lead"] = ''.join(tgt[i] for i in range(first)
+                               if i not in kept and tgt[i] != '-')
+    info["cut_trail"] = ''.join(tgt[i] for i in range(last + 1, n)
+                                if i not in kept and tgt[i] != '-')
+
+    with open(ali_path, 'w') as fh:
+        for code, header, seq in recs:
+            s = ''.join(seq[i] for i in keep)
+            fh.write(f">P1;{code}\n{header}\n")
+            for k in range(0, len(s), 75):
+                chunk = s[k:k + 75]
+                fh.write(chunk + ('*' if k + 75 >= len(s) else '') + '\n')
+            fh.write('\n')
+    return info
+
+
+def _report_to_html(text):
+    """Monospace HTML version of the alignment report for the preview box:
+    helix = red H, strand = blue E, trimmed columns = grey x."""
+    helix = '<span style="color:#c1121f;font-weight:bold">H</span>'
+    strand = '<span style="color:#1d4ed8;font-weight:bold">E</span>'
+    trimmed = '<span style="color:#9ca3af">x</span>'
+    rows = []
+    for line in text.split('\n'):
+        if line.startswith('H/E ') or line.startswith('TRIMMED '):
+            label, body = line[:12], line[12:]
+            parts = []
+            for c in body:
+                if c == 'H':
+                    parts.append(helix)
+                elif c == 'E':
+                    parts.append(strand)
+                elif c == 'x':
+                    parts.append(trimmed)
+                else:
+                    parts.append(html.escape(c))
+            rows.append(html.escape(label) + ''.join(parts))
+        else:
+            rows.append(html.escape(line))
+    return ('<a name="alnreport"></a><pre style="font-family:Consolas,monospace;'
+            'font-size:11pt;margin:0">' + '\n'.join(rows) + '</pre>')
 
 
 class DynamicAlign(QMainWindow):
@@ -291,7 +584,12 @@ class DynamicAlign(QMainWindow):
 
     def open_nextpage(self):
         from .modelbuilding import ModelBuild
-        self.modelwindow = ModelBuild()
+        aln_path = os.path.abspath('Alignment.ali')
+        if os.path.exists(aln_path):
+            # trimmed alignment + the folder holding the template PDBs (MODELLER looks there)
+            self.modelwindow = ModelBuild(alnfile=aln_path, output_dir=os.path.dirname(aln_path))
+        else:
+            self.modelwindow = ModelBuild()
         self.modelwindow.show()
         self.close()
 
@@ -349,10 +647,19 @@ class DynamicAlign(QMainWindow):
             env.libs.topology.read(file='$(LIB)/top_heav.lib')
             env.libs.parameters.read(file='$(LIB)/par.lib')
 
+            # --- Only use templates whose "Use" box is ticked ---
+            active = []
+            for i, tpl in enumerate(self.selected_templates):
+                chk = self.templates_table.cellWidget(i, 0)
+                if chk is None or chk.isChecked():
+                    active.append(tpl)
+            if not active:
+                raise RuntimeError("No template ticked. Tick at least one template in the 'Use' column.")
+
             aln = Alignment(env)
 
             # --- Load templates correctly ---
-            for tpl in self.selected_templates:
+            for tpl in active:
                 pdb_id = tpl['PDB_ID']
                 chain = tpl.get('Chain', 'A')
                 pdbfile = f"{pdb_id}.pdb"
@@ -383,24 +690,92 @@ class DynamicAlign(QMainWindow):
             self.msg_edit.append("Target sequence added")
 
             # --- Structure-aware alignment ---
-            aln.align2d(
-                max_gap_length=30,
-                gap_penalties_1d=(-600, -600)
-            )
+            if GAP_PENALTIES_1D:
+                aln.align2d(max_gap_length=50, gap_penalties_1d=GAP_PENALTIES_1D)
+            else:
+                aln.align2d(max_gap_length=50)
 
             # --- Write alignment ---
             aln.write(file='Alignment.ali', alignment_format='PIR')
+
+            # --- Keep the untrimmed, gapped alignment as the record ---
+            shutil.copy('Alignment.ali', 'Alignment_full.ali')
+            try:
+                aln.write(file='Alignment_full.pap', alignment_format='PAP',
+                          alignment_features='INDICES HELIX BETA')
+            except Exception:
+                aln.write(file='Alignment_full.pap', alignment_format='PAP')
+
+            # --- Trim template-free termini (short ones automatically) ---
+            info = trim_terminal_overhangs('Alignment.ali')
+            pct = 100 * info["covered"] // max(info["target_len"], 1)
+            self.msg_edit.append(
+                f"Template covers {info['covered']}/{info['target_len']} target residues ({pct}%).")
+
+            if ((info["lead"] > MAX_OVERHANG and not info["islands_lead"]) or
+                    (info["trail"] > MAX_OVERHANG and not info["islands_trail"])):
+                ans = QMessageBox.question(
+                    self, "Partial template coverage",
+                    f"Template covers only {info['covered']} of {info['target_len']} "
+                    f"target residues ({pct}%).\n\n"
+                    "Yes = model only the templated region (domain model)\n"
+                    "No = keep full length (template-free parts will be unreliable)",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                if ans == QMessageBox.Yes:
+                    more = trim_terminal_overhangs('Alignment.ali', trim_long=True)
+                    info["dropped"] += more["dropped"]
+                    info["cut_lead"] += more["cut_lead"]
+                    info["cut_trail"] += more["cut_trail"]
+                    if more["kept"] is not None:
+                        info["kept"] = (more["kept"] if info["kept"] is None else
+                                        [info["kept"][i] for i in more["kept"]])
+
+            if info["islands_lead"] or info["islands_trail"]:
+                self.msg_edit.append(
+                    "WARNING: isolated template residues lie outside the main aligned block "
+                    f"(N-term: {info['islands_lead']}, C-term: {info['islands_trail']}). "
+                    "That end was NOT trimmed. The alignment looks fragmented; "
+                    "check it before modelling.")
+
+            if info["dropped"]:
+                self.msg_edit.append(
+                    f"Trimmed {info['dropped']} template-free terminal columns from alignment.")
+                try:
+                    aln = Alignment(env)
+                    aln.append(file='Alignment.ali', alignment_format='PIR',
+                               align_codes='all')
+                except Exception:
+                    pass  # keep untrimmed .pap preview if re-read fails
             aln.write(file='Alignment.pap', alignment_format='PAP')
+
+            # --- Human-readable report: full vs used alignment + trimmed residues ---
+            try:
+                write_alignment_report('Alignment_full.ali', 'Alignment.ali',
+                                       'Alignment_report.txt', info)
+                self.msg_edit.append("Alignment report written: Alignment_report.txt")
+            except Exception as rep_err:
+                self.msg_edit.append(f"(Could not write alignment report: {rep_err})")
 
             self.progress.setValue(90)
             QApplication.processEvents()
 
-            # --- Preview ---
-            with open('Alignment.pap', 'r', encoding='utf-8') as f:
-                pap = f.read()
-
-            self.msg_edit.append("\n=== Alignment (.pap) Preview ===\n")
-            self.msg_edit.append(pap[:4000])
+            # --- Preview: full alignment with helix/strand and trimmed-column rows ---
+            if info["dropped"]:
+                self.msg_edit.append(
+                    "Template-free termini are excluded from model building. "
+                    "Full alignment: Alignment_full.ali | used for modelling: Alignment.ali")
+            self.msg_edit.append(
+                '<span style="color:#c1121f"><b>H</b></span> helix (template) &nbsp;&nbsp; '
+                '<span style="color:#1d4ed8"><b>E</b></span> strand (template) &nbsp;&nbsp; '
+                '<span style="color:#9ca3af">x</span> column trimmed for model building')
+            try:
+                with open('Alignment_report.txt', 'r', encoding='utf-8') as f:
+                    report_text = f.read()
+                self.msg_edit.append(_report_to_html(report_text))
+                self.msg_edit.scrollToAnchor('alnreport')
+            except Exception:
+                with open('Alignment_full.pap', 'r', encoding='utf-8') as f:
+                    self.msg_edit.append(f.read())
 
             self.progress.setValue(100)
             self.status_display.setText("Alignment completed successfully")
@@ -423,7 +798,15 @@ class DynamicAlign(QMainWindow):
             content = src.read()
         with open(path, 'w', encoding='utf-8') as dest:
             dest.write(content)
-        QMessageBox.information(self, "Saved", f"Saved: {path}")
+        base = os.path.splitext(path)[0]
+        for src_name, suffix in (('Alignment_full.ali', '_full.ali'),
+                                 ('Alignment_report.txt', '_report.txt')):
+            if os.path.exists(src_name):
+                shutil.copy(src_name, base + suffix)
+        QMessageBox.information(
+            self, "Saved",
+            f"Saved: {path}\n(+ {os.path.basename(base)}_full.ali and "
+            f"{os.path.basename(base)}_report.txt)")
         self.status_display.setText(f"Saved {os.path.basename(path)} successfully.")
 
 
