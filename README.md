@@ -1,132 +1,145 @@
-# VASUKI: Automated GUI for Comparative Protein Modeling
+# VASUKI
 
-[![PyPI version](https://badge.fury.io/py/vasuki-mitbio.svg)](https://pypi.org/project/vasuki-mitbio/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
+**An Automated GUI for Comparative (Homology) Protein Modelling**
 
----
+VASUKI takes you from a target sequence to a validated 3D model in one desktop application: template search, alignment, model building, refinement, validation and visualisation, with a built-in local AI assistant that explains your BLAST and Ramachandran results.
 
-## What is VASUKI?
-
-**VASUKI** (named after the mythical serpent king) is a full-featured, automated GUI tool for **comparative protein modeling**. It brings together the most essential steps of homology-based protein structure prediction — BLAST search, sequence alignment, 3D model building, structure visualization, Ramachandran plot validation, and an AI-powered chat assistant: all within a single, user-friendly desktop interface.
-
-Designed for researchers, students, and bioinformaticians, VASUKI eliminates the need for command-line expertise and manual pipeline management, making protein structure prediction more accessible than ever.
+Version 1.2.0 | Windows | Python 3.9 - 3.11 | MIT licence
 
 ---
 
-## Key Features
+## Features
 
-- **End-to-End Automated Pipeline** — From a raw amino acid sequence (FASTA format) to a validated 3D protein model, VASUKI handles the entire workflow in one place.
-- **BLAST Integration** — Performs automated sequence similarity searches against protein databases to identify the best homologous templates.
-- **Dynamic Sequence Alignment** — Flexible sequence alignment tools optimized for homology modeling.
-- **3D Model Building with MODELLER** — Leverages the industry-standard MODELLER engine to generate high-quality 3D protein structures.
-- **Structure Visualization** — Built-in HTML-based interactive model viewer for exploring protein structures directly within the app.
-- **Ramachandran Plot Validation** — Generates both 2D and 3D Ramachandran plots with automated residue analysis (favoured, allowed, disallowed regions) to assess model quality.
-- **AI Chat Assistant (Modssistant)** — Powered by Meta-Llama-3-8B via the HuggingFace Inference API, the integrated chatbot answers questions about BLAST results, model quality, and Ramachandran statistics in real time.
-- **Intuitive PyQt5 GUI** — Clean, modern interface designed for scientists, not developers. No command-line knowledge required.
+- **Template search (BLAST):** search for templates and rank hits by identity, coverage, E-value and score.
+- **Alignment:** target-template alignment before modelling.
+- **Model building:** comparative modelling with MODELLER.
+- **Relaxation:** energy minimisation and structure clean-up with OpenMM and PDBFixer.
+- **Validation:** Ramachandran 2D/3D plot analysis (six-category statistics per model) using ramplot.
+- **3D visualisation:** interactive structure viewer inside the application.
+- **AI assistant (offline):** a small Qwen model runs locally on your CPU. It recommends a template from your BLAST table and interprets your Ramachandran statistics in a few short lines. No API key, no internet needed after the first download.
+
+---
+
+## Requirements
+
+- Windows 10/11
+- Python 3.9, 3.10 or 3.11
+- A MODELLER licence key (free for academic use, from the Sali lab: https://salilab.org/modeller/)
+- About 1 GB of free disk space (the AI model is about 542 MB)
 
 ---
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.9 or higher
-- MODELLER (free academic license from [salilab.org](https://salilab.org/modeller/))
-- Ensure the Modeller executable directory is added to your system's PATH environment variable.
-- Internet connection (for BLAST searches and AI chatbot)
-
-### Create a virtual environment (Recommended)
-
-```bash
-python -m venv venv
-.\venv\Scripts\activate
-```
-
-### From Source
-
-```bash
+```powershell
 git clone https://github.com/ShreyaSutar2004/vasuki-mitbio.git
 cd vasuki-mitbio
+
+python -m venv venv
+venv\Scripts\activate
+
+# Prebuilt CPU wheel for the AI assistant (avoids needing a C++ compiler)
+pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+
 pip install .
 ```
 
+Make sure MODELLER is installed and licensed before you build models. See the MODELLER installation guide for how to enter your licence key.
+
 ---
 
-## Usage
+## Running VASUKI
 
-### Launch the GUI
-
-```bash
+```powershell
 run-vasuki
 ```
 
-### Setting Up the AI Chatbot
+or
 
-VASUKI's built-in AI assistant requires a free HuggingFace API token:
-
-1. Go to [huggingface.co](https://huggingface.co/) and log in or create an account.
-2. Navigate to **Settings → Access Tokens** and generate a token with **Read** access.
-3. An `.env` file will be automatically created in your working directory on first launch. Add your token:
-
-```env
-HUGGINGFACEHUB_API_TOKEN=your_token_here
+```powershell
+python -m vasuki.main
 ```
 
-4. Restart the application if needed.
+---
 
-### Workflow
+## The AI assistant
 
-1. **Input** your target protein sequence in FASTA format.
-2. **BLAST Search** — Find homologous template structures from the PDB.
-3. **Align Sequences** — Dynamically align your query with the selected template(s).
-4. **Build 3D Model** — Generate protein structures using MODELLER.
-5. **Visualize** — Explore your model interactively in the built-in viewer.
-6. **Validate** — Run Ramachandran plot analysis to assess model quality.
-7. **Ask Modssistant** — Query the AI chatbot about your results.
+On first launch VASUKI downloads the Qwen3.5-0.8B (Q4_K_M, GGUF) model automatically:
+
+- **Size:** about 542 MB, one time only.
+- **Source:** `InventoryWomen/vasuki-qwen3.5-0.8b-gguf` on Hugging Face. No account, token or API key is needed.
+- **Location:** `%LOCALAPPDATA%\VASUKI\models`
+- **Integrity:** the file's SHA-256 checksum is verified before it is loaded. A corrupted download is removed and fetched again.
+- **After that:** everything runs locally and offline.
+
+To store the model somewhere else, set the `VASUKI_MODEL_CACHE` environment variable to a folder path before launching.
+
+How to use it:
+
+- **BLAST window:** run a search, then ask for example "which template should I use?". VASUKI ranks the hits and explains its pick.
+- **Ramachandran window:** generate the plots first, then ask about the statistics. The assistant reads the numbers from the Analysis Results panel.
+
+Answers are intentionally short (at most 5 lines). It is a 0.8B model: treat its output as a quick helper, not a replacement for your own judgement.
 
 ---
 
-## Dependencies
+## Project structure
 
-| Package | Purpose |
-|---|---|
-| PyQt5 | GUI framework |
-| MODELLER | Protein structure modeling |
-| Biopython | Bioinformatics utilities |
-| Requests | BLAST HTTP requests |
-| LangChain & Transformers | AI chat backend |
-| HuggingFace Hub | LLM API integration |
-| Pandas | Data handling |
-| ramplot | Ramachandran plot generation |
-| python-dotenv | API key management |
-| setuptools (≤69.5.1) | Required by ramplot |
-
----
-
-## Contributing
-
-Contributions are welcome!
-
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/your-feature`).
-3. Submit a pull request with a clear description of your changes.
-
-For major changes, please open an issue first to discuss your proposal.
+```
+vasuki-mitbio/
+  pyproject.toml
+  vasuki/
+    main.py              entry point
+    gui_launcher.py      Qt setup and launcher
+    home.py              main window
+    blast.py             template search and BLAST chat
+    dynamic_align.py     alignment
+    modelbuilding.py     MODELLER model building
+    relax.py             OpenMM / PDBFixer refinement
+    validation.py        Ramachandran validation and chat
+    visualize.py         3D viewer
+    chatmodel.py         local Qwen chatbot logic and prompts
+    model_manager.py     model download, cache and checksum
+    Images/              GUI images
+  configs/, examples/    configuration and example files
+```
 
 ---
 
-## License
+## Troubleshooting
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+- **`llama-cpp-python` fails to install:** use the prebuilt wheel command in the installation section, or install the Visual Studio C++ build tools.
+- **Chatbot says it is unavailable:** check the console for a `Qwen preload failed` message. It is usually a network problem during the first download. Restart the app to retry.
+- **Re-download the model:** delete the file in `%LOCALAPPDATA%\VASUKI\models` and relaunch.
+- **Ramachandran chat says no statistics are available:** click **Generate Plots** first.
+
+---
+
+## Citation
+
+If you use VASUKI in your work, please cite:
+
+> Sutar S., Swamy K. V. VASUKI: An Automated GUI for Comparative Protein Modeling. (publication details to be added)
 
 ---
 
 ## Authors
 
-- **Ms. Shreya Sutar** — Developer
-- **Dr. K V Swamy** — Supervisor
+- Shreya Sutar
+- Dr. K. V. Swamy
 
+---
 
-*VASUKI — bridging the gap between sequence and structure, one model at a time.*
+## Acknowledgements
+
+- [MODELLER](https://salilab.org/modeller/) for comparative modelling
+- [OpenMM](https://openmm.org/) and PDBFixer for refinement
+- [ramplot](https://pypi.org/project/ramplot/) for Ramachandran analysis
+- [Qwen](https://huggingface.co/Qwen) team (Alibaba Cloud) for the Qwen3.5 model, used here as an unmodified Q4_K_M quantised copy under its original licence
+- [llama.cpp](https://github.com/ggml-org/llama.cpp) / llama-cpp-python for local inference
+
+---
+
+## Licence
+
+MIT. See `LICENSE`.
